@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "challenge": {
+    "id": "daily-2026-05-31",
+    "date": "2026-05-31",
+    "title": "Daily Gate",
+    "localizedTitle": {
+      "en": "Daily Gate",
+      "fr": "Porte du jour",
+      "zh": "今日光门"
+    },
+    "difficulty": "Warmup",
+    "level": {
+      "id": 20260531,
+      "name": "Daily Gate",
+      "shotLimit": 1,
+      "parShots": 1,
+      "emitter": {
+        "position": {
+          "x": 0.12,
+          "y": 0.22
+        },
+        "directionDegrees": 0
+      },
+      "mirrors": [
+        {
+          "id": 1,
+          "position": {
+            "x": 0.34,
+            "y": 0.22
+          },
+          "length": 0.12,
+          "angleDegrees": 18,
+          "isRotatable": true
+        },
+        {
+          "id": 2,
+          "position": {
+            "x": 0.34,
+            "y": 0.68
+          },
+          "length": 0.12,
+          "angleDegrees": 78,
+          "isRotatable": true
+        }
+      ],
+      "targets": [
+        {
+          "id": 1,
+          "position": {
+            "x": 0.34,
+            "y": 0.46
+          },
+          "radius": 0.032
+        },
+        {
+          "id": 2,
+          "position": {
+            "x": 0.76,
+            "y": 0.68
+          },
+          "radius": 0.034
+        }
+      ]
+    }
+  }
+}
