@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
   "challenge": {
-    "id": "daily-2026-05-31",
-    "date": "2026-05-31",
-    "title": "Daily Gate",
+    "id": "daily-2026-06-01",
+    "date": "2026-06-01",
+    "title": "Daily Switchback",
     "localizedTitle": {
-      "en": "Daily Gate",
-      "fr": "Porte du jour",
-      "zh": "今日光门"
+      "en": "Daily Switchback",
+      "fr": "Chicane du jour",
+      "zh": "今日折返"
     },
-    "difficulty": "Warmup",
+    "difficulty": "Challenge",
     "level": {
-      "id": 20260531,
-      "name": "Daily Gate",
+      "id": 20260601,
+      "name": "Daily Switchback",
       "shotLimit": 1,
       "parShots": 1,
       "emitter": {
         "position": {
-          "x": 0.12,
-          "y": 0.22
+          "x": 0.1,
+          "y": 0.24
         },
         "directionDegrees": 0
       },
@@ -26,21 +26,41 @@
         {
           "id": 1,
           "position": {
-            "x": 0.34,
-            "y": 0.22
+            "x": 0.29,
+            "y": 0.24
           },
-          "length": 0.12,
-          "angleDegrees": 18,
+          "length": 0.135,
+          "angleDegrees": 14,
           "isRotatable": true
         },
         {
           "id": 2,
           "position": {
-            "x": 0.34,
+            "x": 0.43,
             "y": 0.68
           },
-          "length": 0.12,
-          "angleDegrees": 78,
+          "length": 0.13,
+          "angleDegrees": -22,
+          "isRotatable": true
+        },
+        {
+          "id": 3,
+          "position": {
+            "x": 0.65,
+            "y": 0.44
+          },
+          "length": 0.13,
+          "angleDegrees": 31,
+          "isRotatable": true
+        },
+        {
+          "id": 4,
+          "position": {
+            "x": 0.82,
+            "y": 0.74
+          },
+          "length": 0.125,
+          "angleDegrees": -38,
           "isRotatable": true
         }
       ],
@@ -48,18 +68,34 @@
         {
           "id": 1,
           "position": {
-            "x": 0.34,
-            "y": 0.46
+            "x": 0.21,
+            "y": 0.24
           },
-          "radius": 0.032
+          "radius": 0.018
         },
         {
           "id": 2,
           "position": {
-            "x": 0.76,
-            "y": 0.68
+            "x": 0.36,
+            "y": 0.46
           },
-          "radius": 0.034
+          "radius": 0.018
+        },
+        {
+          "id": 3,
+          "position": {
+            "x": 0.54,
+            "y": 0.56
+          },
+          "radius": 0.018
+        },
+        {
+          "id": 4,
+          "position": {
+            "x": 0.86,
+            "y": 0.46
+          },
+          "radius": 0.018
         }
       ]
     }
