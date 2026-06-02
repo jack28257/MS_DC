@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
   "challenge": {
-    "id": "daily-2026-06-01",
-    "date": "2026-06-01",
-    "title": "Daily Switchback",
+    "id": "daily-2026-06-02",
+    "date": "2026-06-02",
+    "title": "Daily Relay",
     "localizedTitle": {
-      "en": "Daily Switchback",
-      "fr": "Chicane du jour",
-      "zh": "今日折返"
+      "en": "Daily Relay",
+      "fr": "Relais du jour",
+      "zh": "今日接力"
     },
     "difficulty": "Challenge",
     "level": {
-      "id": 20260601,
-      "name": "Daily Switchback",
+      "id": 20260602,
+      "name": "Daily Relay",
       "shotLimit": 1,
       "parShots": 1,
       "emitter": {
         "position": {
           "x": 0.1,
-          "y": 0.24
+          "y": 0.2
         },
         "directionDegrees": 0
       },
@@ -26,41 +26,41 @@
         {
           "id": 1,
           "position": {
-            "x": 0.29,
-            "y": 0.24
+            "x": 0.27,
+            "y": 0.2
           },
           "length": 0.135,
-          "angleDegrees": 14,
+          "angleDegrees": 39.98691575349231,
           "isRotatable": true
         },
         {
           "id": 2,
           "position": {
-            "x": 0.43,
+            "x": 0.41,
             "y": 0.68
           },
           "length": 0.13,
-          "angleDegrees": -22,
+          "angleDegrees": 8.221748674358787,
           "isRotatable": true
         },
         {
           "id": 3,
           "position": {
-            "x": 0.65,
-            "y": 0.44
+            "x": 0.64,
+            "y": 0.4
           },
           "length": 0.13,
-          "angleDegrees": 31,
+          "angleDegrees": 3.8209797413365454,
           "isRotatable": true
         },
         {
           "id": 4,
           "position": {
             "x": 0.82,
-            "y": 0.74
+            "y": 0.72
           },
           "length": 0.125,
-          "angleDegrees": -38,
+          "angleDegrees": -5.432304820641492,
           "isRotatable": true
         }
       ],
@@ -68,23 +68,23 @@
         {
           "id": 1,
           "position": {
-            "x": 0.21,
-            "y": 0.24
+            "x": 0.34,
+            "y": 0.44
           },
           "radius": 0.018
         },
         {
           "id": 2,
           "position": {
-            "x": 0.36,
-            "y": 0.46
+            "x": 0.525,
+            "y": 0.54
           },
           "radius": 0.018
         },
         {
           "id": 3,
           "position": {
-            "x": 0.54,
+            "x": 0.73,
             "y": 0.56
           },
           "radius": 0.018
@@ -92,7 +92,7 @@
         {
           "id": 4,
           "position": {
-            "x": 0.86,
+            "x": 0.88,
             "y": 0.46
           },
           "radius": 0.018
