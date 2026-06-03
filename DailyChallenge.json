@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
   "challenge": {
-    "id": "daily-2026-06-02",
-    "date": "2026-06-02",
-    "title": "Daily Relay",
+    "id": "daily-2026-06-03",
+    "date": "2026-06-03",
+    "title": "Daily Pinball",
     "localizedTitle": {
-      "en": "Daily Relay",
-      "fr": "Relais du jour",
-      "zh": "今日接力"
+      "en": "Daily Pinball",
+      "fr": "Flipper du jour",
+      "zh": "今日弹射"
     },
     "difficulty": "Challenge",
     "level": {
-      "id": 20260602,
-      "name": "Daily Relay",
+      "id": 20260603,
+      "name": "Daily Pinball",
       "shotLimit": 1,
       "parShots": 1,
       "emitter": {
         "position": {
           "x": 0.1,
-          "y": 0.2
+          "y": 0.22
         },
         "directionDegrees": 0
       },
@@ -26,41 +26,41 @@
         {
           "id": 1,
           "position": {
-            "x": 0.27,
-            "y": 0.2
+            "x": 0.26,
+            "y": 0.22
           },
-          "length": 0.135,
+          "length": 0.14,
           "angleDegrees": 39.98691575349231,
           "isRotatable": true
         },
         {
           "id": 2,
           "position": {
-            "x": 0.41,
-            "y": 0.68
+            "x": 0.4,
+            "y": 0.7
           },
-          "length": 0.13,
-          "angleDegrees": 8.221748674358787,
+          "length": 0.135,
+          "angleDegrees": 10.598291383517761,
           "isRotatable": true
         },
         {
           "id": 3,
           "position": {
             "x": 0.64,
-            "y": 0.4
+            "y": 0.46
           },
           "length": 0.13,
-          "angleDegrees": 3.8209797413365454,
+          "angleDegrees": 4.966513773415419,
           "isRotatable": true
         },
         {
           "id": 4,
           "position": {
             "x": 0.82,
-            "y": 0.72
+            "y": 0.74
           },
           "length": 0.125,
-          "angleDegrees": -5.432304820641492,
+          "angleDegrees": -6.619650907190191,
           "isRotatable": true
         }
       ],
@@ -68,16 +68,16 @@
         {
           "id": 1,
           "position": {
-            "x": 0.34,
-            "y": 0.44
+            "x": 0.33,
+            "y": 0.46
           },
           "radius": 0.018
         },
         {
           "id": 2,
           "position": {
-            "x": 0.525,
-            "y": 0.54
+            "x": 0.52,
+            "y": 0.58
           },
           "radius": 0.018
         },
@@ -85,15 +85,15 @@
           "id": 3,
           "position": {
             "x": 0.73,
-            "y": 0.56
+            "y": 0.6
           },
           "radius": 0.018
         },
         {
           "id": 4,
           "position": {
-            "x": 0.88,
-            "y": 0.46
+            "x": 0.89,
+            "y": 0.44
           },
           "radius": 0.018
         }
