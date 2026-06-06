@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
   "challenge": {
-    "id": "daily-2026-06-05",
-    "date": "2026-06-05",
-    "title": "Daily Relay",
+    "id": "daily-2026-06-06",
+    "date": "2026-06-06",
+    "title": "Daily Switch",
     "localizedTitle": {
-      "en": "Daily Relay",
-      "fr": "Relais du jour",
-      "zh": "今日接力"
+      "en": "Daily Switch",
+      "fr": "Virage du jour",
+      "zh": "今日转折"
     },
     "difficulty": "Challenge",
     "level": {
-      "id": 20260605,
-      "name": "Daily Relay",
+      "id": 20260606,
+      "name": "Daily Switch",
       "shotLimit": 1,
       "parShots": 1,
       "emitter": {
         "position": {
           "x": 0.1,
-          "y": 0.24
+          "y": 0.27
         },
         "directionDegrees": 0
       },
@@ -27,40 +27,40 @@
           "id": 1,
           "position": {
             "x": 0.25,
-            "y": 0.24
+            "y": 0.27
           },
           "length": 0.135,
-          "angleDegrees": 36.536243467926475,
+          "angleDegrees": 39.28845472577655,
           "isRotatable": true
         },
         {
           "id": 2,
           "position": {
             "x": 0.39,
-            "y": 0.7
+            "y": 0.69
           },
           "length": 0.13,
-          "angleDegrees": 6.769015927656409,
+          "angleDegrees": 4.996606725986344,
           "isRotatable": true
         },
         {
           "id": 3,
           "position": {
-            "x": 0.59,
-            "y": 0.36
+            "x": 0.61,
+            "y": 0.35
           },
           "length": 0.13,
-          "angleDegrees": -3.8458408339545995,
+          "angleDegrees": -1.237711765701017,
           "isRotatable": true
         },
         {
           "id": 4,
           "position": {
-            "x": 0.81,
-            "y": 0.64
+            "x": 0.8,
+            "y": 0.61
           },
           "length": 0.125,
-          "angleDegrees": -11.224294379176667,
+          "angleDegrees": -6.234318491687358,
           "isRotatable": true
         }
       ],
@@ -68,24 +68,24 @@
         {
           "id": 1,
           "position": {
-            "x": 0.3088,
-            "y": 0.4332
+            "x": 0.32,
+            "y": 0.48
           },
           "radius": 0.018
         },
         {
           "id": 2,
           "position": {
-            "x": 0.494,
-            "y": 0.5232
+            "x": 0.5,
+            "y": 0.52
           },
           "radius": 0.018
         },
         {
           "id": 3,
           "position": {
-            "x": 0.6956,
-            "y": 0.4944
+            "x": 0.705,
+            "y": 0.48
           },
           "radius": 0.018
         },
@@ -93,7 +93,7 @@
           "id": 4,
           "position": {
             "x": 0.9,
-            "y": 0.32
+            "y": 0.31
           },
           "radius": 0.02
         }
