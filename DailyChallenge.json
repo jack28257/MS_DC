@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "challenge": {
-    "id": "daily-2026-06-09",
-    "date": "2026-06-09",
+    "id": "daily-2026-06-10",
+    "date": "2026-06-10",
     "title": "Daily Challenge",
     "localizedTitle": {
       "en": "Daily Challenge",
@@ -11,14 +11,14 @@
     },
     "difficulty": "Challenge",
     "level": {
-      "id": 20260609,
+      "id": 20260610,
       "name": "Daily Challenge",
       "shotLimit": 1,
       "parShots": 1,
       "emitter": {
         "position": {
           "x": 0.1,
-          "y": 0.18
+          "y": 0.78
         },
         "directionDegrees": 0
       },
@@ -26,31 +26,41 @@
         {
           "id": 1,
           "position": {
-            "x": 0.28,
-            "y": 0.18
+            "x": 0.27,
+            "y": 0.78
           },
           "length": 0.14,
-          "angleDegrees": 37.71866858508741,
+          "angleDegrees": -37.776797236112266,
           "isRotatable": true
         },
         {
           "id": 2,
           "position": {
-            "x": 0.52,
-            "y": 0.74
+            "x": 0.44,
+            "y": 0.38
           },
           "length": 0.13,
-          "angleDegrees": 37.71866858508741,
+          "angleDegrees": -7.205465593382491,
           "isRotatable": true
         },
         {
           "id": 3,
           "position": {
-            "x": 0.78,
-            "y": 0.74
+            "x": 0.64,
+            "y": 0.60
           },
           "length": 0.13,
-          "angleDegrees": -40.468355693636454,
+          "angleDegrees": -5.532676331778839,
+          "isRotatable": true
+        },
+        {
+          "id": 4,
+          "position": {
+            "x": 0.82,
+            "y": 0.26
+          },
+          "length": 0.125,
+          "angleDegrees": -94.50402254107968,
           "isRotatable": true
         }
       ],
@@ -58,40 +68,32 @@
         {
           "id": 1,
           "position": {
-            "x": 0.37,
-            "y": 0.39
+            "x": 0.3346,
+            "y": 0.628
           },
           "radius": 0.018
         },
         {
           "id": 2,
           "position": {
-            "x": 0.46,
-            "y": 0.6
+            "x": 0.55,
+            "y": 0.501
           },
           "radius": 0.018
         },
         {
           "id": 3,
           "position": {
-            "x": 0.66,
-            "y": 0.74
+            "x": 0.739,
+            "y": 0.413
           },
           "radius": 0.018
         },
         {
           "id": 4,
           "position": {
-            "x": 0.84,
-            "y": 0.52
-          },
-          "radius": 0.018
-        },
-        {
-          "id": 5,
-          "position": {
-            "x": 0.88,
-            "y": 0.36
+            "x": 0.72,
+            "y": 0.14
           },
           "radius": 0.018
         }
