@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "challenge": {
-    "id": "daily-2026-06-12",
-    "date": "2026-06-12",
+    "id": "daily-2026-06-13",
+    "date": "2026-06-13",
     "title": "Daily Challenge",
     "localizedTitle": {
       "en": "Daily Challenge",
@@ -11,14 +11,14 @@
     },
     "difficulty": "Challenge",
     "level": {
-      "id": 20260612,
+      "id": 20260613,
       "name": "Daily Challenge",
       "shotLimit": 1,
       "parShots": 1,
       "emitter": {
         "position": {
           "x": 0.1,
-          "y": 0.18
+          "y": 0.78
         },
         "directionDegrees": 0
       },
@@ -27,50 +27,40 @@
           "id": 1,
           "position": {
             "x": 0.26,
-            "y": 0.18
+            "y": 0.78
           },
-          "length": 0.13,
-          "angleDegrees": 38.475512,
+          "length": 0.135,
+          "angleDegrees": -38.036468,
           "isRotatable": true
         },
         {
           "id": 2,
           "position": {
-            "x": 0.39,
-            "y": 0.52
+            "x": 0.44,
+            "y": 0.34
           },
           "length": 0.13,
-          "angleDegrees": 61.035202,
+          "angleDegrees": -3.411133,
           "isRotatable": true
         },
         {
           "id": 3,
           "position": {
-            "x": 0.62,
+            "x": 0.64,
             "y": 0.66
           },
-          "length": 0.125,
-          "angleDegrees": -9.250692,
+          "length": 0.13,
+          "angleDegrees": -2.364472,
           "isRotatable": true
         },
         {
           "id": 4,
           "position": {
-            "x": 0.8,
-            "y": 0.44
+            "x": 0.82,
+            "y": 0.28
           },
           "length": 0.125,
-          "angleDegrees": -85.848625,
-          "isRotatable": true
-        },
-        {
-          "id": 5,
-          "position": {
-            "x": 0.66,
-            "y": 0.18
-          },
-          "length": 0.12,
-          "angleDegrees": -46.917682,
+          "angleDegrees": -70.987754,
           "isRotatable": true
         }
       ],
@@ -78,48 +68,40 @@
         {
           "id": 1,
           "position": {
-            "x": 0.304,
-            "y": 0.295
+            "x": 0.3194,
+            "y": 0.6348
           },
           "radius": 0.018
         },
         {
           "id": 2,
           "position": {
-            "x": 0.349,
-            "y": 0.412
+            "x": 0.3788,
+            "y": 0.4896
           },
           "radius": 0.018
         },
         {
           "id": 3,
           "position": {
-            "x": 0.5165,
-            "y": 0.597
+            "x": 0.54,
+            "y": 0.5
           },
           "radius": 0.018
         },
         {
           "id": 4,
           "position": {
-            "x": 0.719,
-            "y": 0.538
+            "x": 0.73,
+            "y": 0.47
           },
           "radius": 0.018
         },
         {
           "id": 5,
           "position": {
-            "x": 0.723,
-            "y": 0.298
-          },
-          "radius": 0.018
-        },
-        {
-          "id": 6,
-          "position": {
-            "x": 0.79,
-            "y": 0.2
+            "x": 0.9,
+            "y": 0.16
           },
           "radius": 0.018
         }
