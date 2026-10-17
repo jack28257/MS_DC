@@ -92,7 +92,8 @@ def publish(day, output):
         payload = generate_challenge(day)
         dated.parent.mkdir(parents=True, exist_ok=True)
         dated.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
-    (output / "DailyChallenge.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    latest = dict(payload, publishedAt=dt.datetime.now(dt.timezone.utc).isoformat())
+    (output / "DailyChallenge.json").write_text(json.dumps(latest, ensure_ascii=False, indent=2) + "\n")
     print(f"Generated and validated daily challenge {day}: {dated.name}")
 
 

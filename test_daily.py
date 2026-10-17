@@ -40,10 +40,10 @@ class DailyTests(unittest.TestCase):
             root = Path(tmp)
             daily.publish(day, root)
             self.assertEqual([p.name for p in (root / "challenges").iterdir()], ["2026-10-17.json"])
-            previous = (root / "DailyChallenge.json").read_bytes()
+            previous = json.loads((root / "DailyChallenge.json").read_text())["challenge"]
             with patch.object(daily, "generate_challenge", side_effect=AssertionError("Published puzzle regenerated")):
                 daily.publish(day, root)
-            self.assertEqual((root / "DailyChallenge.json").read_bytes(), previous)
+            self.assertEqual(json.loads((root / "DailyChallenge.json").read_text())["challenge"], previous)
             self.assertFalse((root / "DailyChallenges.json").exists())
 
 
