@@ -1,59 +1,22 @@
 #!/usr/bin/env python3
-"""Publish deterministic, solver-checked daily puzzles. No API keys required."""
+"""Generate one new, solver-checked puzzle each day and publish it as JSON."""
 import argparse
-import copy
 import datetime as dt
+import hashlib
 import json
+import random
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import mirror_daily_validator as validator
 
 ROOT = Path(__file__).resolve().parent
-EPOCH = dt.date(1970, 1, 1)
 BOARD_SIZES = ((390, 620), (402, 520), (440, 700), (700, 600))
 
 
-def load_templates():
-    return json.loads((ROOT / "DailyChallengeTemplates.json").read_text())["levels"]
-
-
-def challenge_for(day, templates=None):
-    templates = templates if templates is not None else load_templates()
-    ordinal = (day - EPOCH).days
-    index = ordinal % len(templates)
-    flip_y = (ordinal // len(templates)) % 2 == 1
-    flip_x = (ordinal // (len(templates) * 2)) % 2 == 1
-    level = copy.deepcopy(templates[index])
-    date_key = day.isoformat()
-    date_number = int(day.strftime("%Y%m%d"))
-
-    def transform(point):
-        return {"x": 1 - point["x"] if flip_x else point["x"],
-                "y": 1 - point["y"] if flip_y else point["y"]}
-
-    def angle(value):
-        if flip_x:
-            value = 180 - value
-        if flip_y:
-            value = -value
-        return value
-
-    level["id"] = date_number
-    level["name"] = "Daily Challenge"
-    level["emitter"]["position"] = transform(level["emitter"]["position"])
-    level["emitter"]["directionDegrees"] = angle(level["emitter"]["directionDegrees"])
-    for mirror in level["mirrors"]:
-        mirror["position"] = transform(mirror["position"])
-        offset = 20 + (date_number * 31 + mirror["id"] * 17) % 61
-        sign = 1 if (date_number + mirror["id"]) % 2 == 0 else -1
-        mirror["angleDegrees"] = angle(mirror["angleDegrees"]) + offset * sign
-    for target in level["targets"]:
-        target["position"] = transform(target["position"])
-    return {"schemaVersion": 1, "challenge": {
-        "id": f"daily-{date_key}", "date": date_key, "title": "Daily Challenge",
-        "localizedTitle": {"en": "Daily Challenge", "fr": "Défi du jour", "zh": "每日挑战"},
-        "difficulty": "Challenge", "level": level}}
+def publication_day(now=None):
+    now = now or dt.datetime.now(ZoneInfo("America/Toronto"))
+    return now.astimezone(ZoneInfo("America/Toronto")).date()
 
 
 def validate_challenge(payload):
@@ -69,25 +32,68 @@ def validate_challenge(payload):
         validator.STAGE_RECT = original
 
 
-def active_day(now=None):
-    now = now or dt.datetime.now(ZoneInfo("America/Toronto"))
-    return now.date() - dt.timedelta(days=1 if now.hour < 8 else 0)
+def generate_challenge(day):
+    # Seed by date so rerunning a job cannot replace a puzzle already being played.
+    seed = int.from_bytes(hashlib.sha256(f"MirrorShot-v2:{day.isoformat()}".encode()).digest(), "big")
+    rng = random.Random(seed)
+    for _ in range(2048):
+        n = rng.randint(3, 5)
+        lower, upper = rng.uniform(0.26, 0.38), rng.uniform(0.62, 0.74)
+        ys = [lower if i % 2 == 0 else upper for i in range(n)]
+        if rng.choice((False, True)):
+            ys = [1 - y for y in ys]
+        points = [{"x": 0.20 + i * 0.60 / (n - 1) + rng.uniform(-0.02, 0.02),
+                   "y": y + rng.uniform(-0.03, 0.03)} for i, y in enumerate(ys)]
+        emitter = {"x": rng.uniform(0.055, 0.085), "y": points[0]["y"]}
+        end = {"x": rng.uniform(0.92, 0.95), "y": rng.uniform(0.27, 0.73)}
+        chain = [emitter] + points
+        targets = []
+        for i in range(n):
+            start, finish = chain[i:i + 2]
+            t = rng.uniform(0.40, 0.62)
+            targets.append({"id": i + 1, "position": {
+                "x": start["x"] + (finish["x"] - start["x"]) * t,
+                "y": start["y"] + (finish["y"] - start["y"]) * t}, "radius": rng.uniform(0.023, 0.032)})
+        targets.append({"id": n + 1, "position": end, "radius": rng.uniform(0.023, 0.032)})
+        level = {"id": int(day.strftime("%Y%m%d")), "name": "Daily Challenge", "shotLimit": 1, "parShots": 1,
+                 "emitter": {"position": emitter, "directionDegrees": 0},
+                 "mirrors": [{"id": i + 1, "position": p, "length": rng.uniform(0.11, 0.15),
+                              "angleDegrees": 0, "isRotatable": True} for i, p in enumerate(points)],
+                 "targets": targets}
+        # Reflect entire paths for variety while preserving their intended geometry.
+        if rng.choice((False, True)):
+            for point in [emitter] + [m["position"] for m in level["mirrors"]] + [t["position"] for t in targets]:
+                point["x"] = 1 - point["x"]
+            level["emitter"]["directionDegrees"] = 180
+        angles = validator.official_angles(level)
+        for mirror in level["mirrors"]:
+            mirror["angleDegrees"] = angles[mirror["id"]] + rng.choice((-1, 1)) * rng.uniform(22, 75)
+        payload = {"schemaVersion": 1, "challenge": {
+            "id": f"daily-{day.isoformat()}", "date": day.isoformat(), "title": "Daily Challenge",
+            "localizedTitle": {"en": "Daily Challenge", "fr": "Défi du jour", "zh": "每日挑战"},
+            "difficulty": "Challenge", "level": level}}
+        try:
+            validate_challenge(payload)
+            return payload
+        except AssertionError:
+            continue
+    raise RuntimeError(f"Could not generate a valid puzzle for {day}")
 
 
 def publish(day, output):
-    templates = load_templates()
-    challenges = []
-    for offset in range(-3, 36):
-        payload = challenge_for(day + dt.timedelta(days=offset), templates)
+    dated = output / "challenges" / f"{day.isoformat()}.json"
+    if dated.exists():
+        # Keep the first published puzzle immutable, even after generator changes.
+        payload = json.loads(dated.read_text())
+        if payload["challenge"]["date"] != day.isoformat():
+            raise ValueError("Archived challenge date does not match its filename")
         validate_challenge(payload)
-        challenges.append(payload["challenge"])
-    feed = {"schemaVersion": 1, "generatorVersion": 1,
-            "startDate": challenges[0]["date"], "endDate": challenges[-1]["date"],
-            "challenges": challenges}
-    output.mkdir(parents=True, exist_ok=True)
-    (output / "DailyChallenges.json").write_text(json.dumps(feed, ensure_ascii=False, separators=(",", ":")) + "\n")
-    (output / "DailyChallenge.json").write_text(json.dumps(challenge_for(day, templates), ensure_ascii=False, indent=2) + "\n")
-    print(f"Validated and published {len(challenges)} challenges: {feed['startDate']} through {feed['endDate']}")
+    else:
+        payload = generate_challenge(day)
+        dated.parent.mkdir(parents=True, exist_ok=True)
+        dated.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    (output / "DailyChallenge.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    print(f"Generated and validated daily challenge {day}: {dated.name}")
 
 
 if __name__ == "__main__":
@@ -95,4 +101,4 @@ if __name__ == "__main__":
     parser.add_argument("--date", type=dt.date.fromisoformat)
     parser.add_argument("--output", type=Path, default=ROOT)
     args = parser.parse_args()
-    publish(args.date or active_day(), args.output)
+    publish(args.date or publication_day(), args.output)
