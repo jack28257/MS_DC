@@ -2,11 +2,11 @@
 
 Updated October 17, 2026 · Lumilo Studio
 
-This policy describes the current free playtest of MirrorShot for iOS.
+This policy describes MirrorShot for iOS.
 
 ## Local game data
 
-MirrorShot has no account, advertising, analytics SDK or cross-app tracking. We do not receive your gameplay progress automatically. Campaign progress, scores, achievements, daily challenge records, tutorial history and preferences are stored locally using app-scoped UserDefaults. Older builds may also have saved a local gem balance; it is retained but is not used or sold in this playtest.
+MirrorShot has no account, advertising, analytics SDK or cross-app tracking. We do not receive your gameplay progress automatically. Campaign progress, scores, achievements, daily challenge records, tutorial history, preferences and full-game access are stored locally using app-scoped UserDefaults. Older builds may also have saved a local gem balance; it is retained but gems are not used or sold.
 
 Debug builds may write local daily-loading and notification diagnostic status inside the app container. These files are not automatically uploaded.
 
@@ -26,11 +26,11 @@ Sharing starts only when you tap Share and uses the iOS share sheet. The image c
 
 ## Purchases
 
-The current playtest does not process payments or offer in-app purchases. All current levels are available through normal progression, with unlimited trajectory previews. There are no gem purchases. A future paid release will require an updated policy before payment features are enabled.
+Full-game access and purchase records are stored on your device. Restore purchases reads the purchase record saved on this device. MirrorShot does not collect payment card details or send purchase records to the feedback service. There are no gem purchases.
 
 ## Deleting local data
 
-Settings → Clear play history resets campaign scores, achievements and tutorial history. Select the daily streak option to also clear daily records. This keeps preferences and any legacy local gem balance.
+Settings → Clear play history resets campaign scores, achievements and tutorial history. Select the daily streak option to also clear daily records. This keeps preferences, full-game access and any legacy local gem balance.
 
 To remove the complete app container, select **Delete App** in iOS Settings; **Offload App** keeps data. Apple device backups or transfers may retain or copy local data according to your system settings. We cannot access or delete those backups.
 
