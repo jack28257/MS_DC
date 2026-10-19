@@ -1,12 +1,12 @@
 # MirrorShot Privacy Policy
 
-Updated October 17, 2026 · Lumilo Studio
+Updated October 18, 2026 · Lumilo Studio
 
 This policy describes MirrorShot for iOS.
 
 ## Local game data
 
-MirrorShot has no account, advertising, analytics SDK or cross-app tracking. We do not receive your gameplay progress automatically. Campaign progress, scores, achievements, daily challenge records, tutorial history, preferences and full-game access are stored locally using app-scoped UserDefaults. Older builds may also have saved a local gem balance; it is retained but gems are not used or sold.
+MirrorShot has no account, advertising, analytics SDK or cross-app tracking. We do not receive your gameplay progress automatically. Campaign progress, scores, achievements, daily challenge records, tutorial history, saved mirror layouts, preferences and full-game access are stored locally using app-scoped UserDefaults. Older builds may also have saved a local gem balance; it is retained but gems are not used or sold.
 
 Debug builds may write local daily-loading and notification diagnostic status inside the app container. These files are not automatically uploaded.
 
@@ -38,12 +38,14 @@ To remove the complete app container, select **Delete App** in iOS Settings; **O
 
 Use **Settings → Support & feedback** in MirrorShot, or the [MirrorShot feedback form](https://mirrorshot-feedback.groovy-clove-2264.chatgpt.site/). No email address or account is required to submit.
 
-Only after you choose Submit does the app send your message, topic, a random reference number, app/iOS versions and language to our feedback service. Unsubmitted drafts stay in the current app screen or browser session and are not automatically uploaded. Please do not include passwords or sensitive personal information.
+Choosing Submit sends your message, a random submission reference, app/iOS versions, language, device model, recent level and up to 60 app-owned diagnostic events to our feedback service. These events describe game actions and results; they do not include system-wide logs, other apps, private identifiers, message drafts or purchase records. Browser submissions provide the message and browser-form version fields without iOS device diagnostics.
+
+Unsubmitted drafts persist locally on the device or in browser storage. Submitted messages are saved locally before transmission; unconfirmed messages retry automatically while the app or page is running and when it next opens. The same submission reference prevents duplicate records. Confirmed messages are removed from the local queue.
 
 Feedback is stored in the developer's private inbox using OpenAI Sites and Cloudflare hosting/database services. Only the developer's authenticated account can read messages or mark their review status. Feedback is used to investigate problems, review ideas and improve the game, not for advertising or cross-app tracking. Records remain in the inbox until reviewed or removed by the developer.
 
 The hosting providers receive ordinary technical network information, including IP address and request time. To limit spam, our service uses a daily-changing keyed hash of the network address in a separate rate-limit table. Raw IP addresses are not written to the feedback database. Expired rate-limit entries are cleaned up on subsequent submissions after expiry. See [Cloudflare's privacy policy](https://www.cloudflare.com/privacypolicy/) and [OpenAI's privacy policy](https://openai.com/policies/privacy-policy/) for the providers' practices.
 
-Keep the returned feedback reference. This anonymous channel cannot send email replies. To ask about a submission or request deletion, submit a new question quoting the reference number; the developer reviews these requests.
+To ask about a submission or request deletion, send a new message with the original contents and approximate submission time. The developer reviews these requests.
 
 The full policy is also bundled inside MirrorShot under Settings → Privacy policy, in English, French and Chinese. Policy changes will be reflected here and in the app.
