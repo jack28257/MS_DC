@@ -9,9 +9,10 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import mirror_daily_validator as validator
+import mechanic_daily
 
 ROOT = Path(__file__).resolve().parent
-BOARD_SIZES = ((390, 620), (402, 520), (440, 700), (700, 600))
+BOARD_SIZES = ((390, 620), (402, 520), (440, 700), (700, 600), (600, 210), (780, 230), (852, 270))
 
 
 def publication_day(now=None):
@@ -27,12 +28,28 @@ def validate_challenge(payload):
             validator.STAGE_RECT = {"x": inset, "y": inset,
                                     "width": width - 2 * inset, "height": height - 2 * inset}
             validator.validate_level(payload)
-            assert validator.compute_shot_plan(payload["challenge"]["level"])["outcome"] != "clear", "Puzzle starts solved"
+            if payload["schemaVersion"] == 1:
+                assert validator.compute_shot_plan(payload["challenge"]["level"])["outcome"] != "clear", "Puzzle starts solved"
     finally:
         validator.STAGE_RECT = original
 
 
 def generate_challenge(day):
+    if day.toordinal() % 5 == 0:
+        return generate_classic_challenge(day)
+    seed = int.from_bytes(hashlib.sha256(f"MirrorShot-v3:{day.isoformat()}".encode()).digest(), "big")
+    rng = random.Random(seed)
+    for _ in range(2048):
+        payload = mechanic_daily.sample(day, rng)
+        try:
+            validate_challenge(payload)
+            return payload
+        except AssertionError:
+            continue
+    raise RuntimeError(f"Could not generate a valid mechanic puzzle for {day}")
+
+
+def generate_classic_challenge(day):
     # Seed by date so rerunning a job cannot replace a puzzle already being played.
     seed = int.from_bytes(hashlib.sha256(f"MirrorShot-v2:{day.isoformat()}".encode()).digest(), "big")
     rng = random.Random(seed)
@@ -92,8 +109,16 @@ def publish(day, output):
         payload = generate_challenge(day)
         dated.parent.mkdir(parents=True, exist_ok=True)
         dated.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    entry = output / "DailyChallenge.json"
+    try:
+        current = json.loads(entry.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        current = None
+    if current is not None and {k:v for k,v in current.items() if k != 'publishedAt'} == payload:
+        print(f"Validated existing daily challenge {day}; no changes.")
+        return
     latest = dict(payload, publishedAt=dt.datetime.now(dt.timezone.utc).isoformat())
-    (output / "DailyChallenge.json").write_text(json.dumps(latest, ensure_ascii=False, indent=2) + "\n")
+    entry.write_text(json.dumps(latest, ensure_ascii=False, indent=2) + "\n")
     print(f"Generated and validated daily challenge {day}: {dated.name}")
 
 

@@ -347,6 +347,9 @@ def path_economy(path_length):
 
 
 def validate_level(payload):
+    if payload.get("schemaVersion") == 2:
+        from mechanic_daily import validate_level as validate_mechanics
+        return validate_mechanics(payload)
     challenge = payload["challenge"]
     level = challenge["level"]
     assert payload["schemaVersion"] == 1

@@ -9,6 +9,7 @@ on:
     paths:
       - 'generate_daily.py'
       - 'mirror_daily_validator.py'
+      - 'mechanic_daily.py'
       - 'test_daily.py'
       - '.github/workflows/daily.yml'
 
@@ -30,16 +31,25 @@ jobs:
           python-version: '3.12'
       - name: Check generation and solutions
         run: python3 -m unittest -v test_daily
-      - name: Generate and validate today's puzzle
-        run: python3 generate_daily.py
       - name: Commit daily data
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add DailyChallenge.json challenges/
-          if git diff --cached --quiet; then
-            echo 'Daily data is already current.'
-          else
-            git commit -m 'Publish today’s validated daily challenge'
-            git push origin HEAD:main
-          fi
+          # Another publisher may win while CI is validating. Reuse its puzzle
+          # after syncing instead of force-pushing or replacing dated content.
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git merge --ff-only origin/main
+            day=$(TZ=America/Toronto date +%F)
+            python3 generate_daily.py --date "$day"
+            git add "challenges/$day.json" DailyChallenge.json
+            if git diff --cached --quiet; then
+              echo 'Daily data is already current.'
+              exit 0
+            fi
+            git commit -m "Publish validated daily challenge for $day"
+            if git push origin HEAD:main; then exit 0; fi
+            # Only the two generated files exist in this clean CI checkout.
+            git reset --hard origin/main
+          done
+          exit 1
