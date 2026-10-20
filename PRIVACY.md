@@ -1,6 +1,6 @@
 # MirrorShot Privacy Policy
 
-Updated October 18, 2026 · Lumilo Studio
+Updated October 20, 2026 · Lumilo Studio
 
 This policy describes MirrorShot for iOS.
 
@@ -42,10 +42,10 @@ Choosing Submit sends your message, a random submission reference, app/iOS versi
 
 Unsubmitted drafts persist locally on the device or in browser storage. Submitted messages are saved locally before transmission; unconfirmed messages retry automatically while the app or page is running and when it next opens. The same submission reference prevents duplicate records. Confirmed messages are removed from the local queue.
 
-Feedback is stored in the developer's private inbox using OpenAI Sites and Cloudflare hosting/database services. Only the developer's authenticated account can read messages or mark their review status. Feedback is used to investigate problems, review ideas and improve the game, not for advertising or cross-app tracking. Records remain in the inbox until reviewed or removed by the developer.
+Feedback is stored in the developer's private inbox using OpenAI Sites and Cloudflare hosting/database services. The developer's authenticated account can read and manage feedback. Your device stores a private random key per submission, and the server stores its hash, so you can view your own message, processing status and developer replies without an account or email. A reference number alone does not grant access. Losing app data or browser storage removes access to this anonymous history. Feedback is used to investigate problems, review ideas and improve the game, not for advertising or cross-app tracking. Records remain in the inbox until reviewed or removed by the developer.
 
 The hosting providers receive ordinary technical network information, including IP address and request time. To limit spam, our service uses a daily-changing keyed hash of the network address in a separate rate-limit table. Raw IP addresses are not written to the feedback database. Expired rate-limit entries are cleaned up on subsequent submissions after expiry. See [Cloudflare's privacy policy](https://www.cloudflare.com/privacypolicy/) and [OpenAI's privacy policy](https://openai.com/policies/privacy-policy/) for the providers' practices.
 
-To ask about a submission or request deletion, send a new message with the original contents and approximate submission time. The developer reviews these requests.
+To ask about a submission or request deletion, send a new message with the feedback reference. The developer reviews these requests.
 
 The full policy is also bundled inside MirrorShot under Settings → Privacy policy, in English, French and Chinese. Policy changes will be reflected here and in the app.
