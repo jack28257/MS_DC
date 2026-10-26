@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "challenge": {
+    "id": "daily-2026-10-26",
+    "date": "2026-10-26",
+    "title": "Daily Challenge",
+    "localizedTitle": {
+      "en": "Daily Challenge",
+      "fr": "Défi du jour",
+      "zh": "每日挑战"
+    },
+    "difficulty": "Challenge",
+    "level": {
+      "id": 20261026,
+      "name": "Daily Challenge",
+      "shotLimit": 1,
+      "parShots": 1,
+      "emitter": {
+        "position": {
+          "x": 0.0758062023760864,
+          "y": 0.7268194659110939
+        },
+        "directionDegrees": 0
+      },
+      "mirrors": [
+        {
+          "id": 1,
+          "position": {
+            "x": 0.18911138511766026,
+            "y": 0.7268194659110939
+          },
+          "length": 0.11565091074485132,
+          "angleDegrees": -102.77649192157796,
+          "isRotatable": true
+        },
+        {
+          "id": 2,
+          "position": {
+            "x": 0.5055911966605253,
+            "y": 0.34729586626861453
+          },
+          "length": 0.11327292260136501,
+          "angleDegrees": -70.43989419587047,
+          "isRotatable": true
+        },
+        {
+          "id": 3,
+          "position": {
+            "x": 0.7803420894333993,
+            "y": 0.7029631622930844
+          },
+          "length": 0.12404566116222629,
+          "angleDegrees": -12.370837189408114,
+          "isRotatable": true
+        }
+      ],
+      "targets": [
+        {
+          "id": 1,
+          "position": {
+            "x": 0.12377116956824008,
+            "y": 0.7268194659110939
+          },
+          "radius": 0.02848251471639772
+        },
+        {
+          "id": 2,
+          "position": {
+            "x": 0.3849715067622841,
+            "y": 0.4919433831979521
+          },
+          "radius": 0.026844070607833236
+        },
+        {
+          "id": 3,
+          "position": {
+            "x": 0.6193052854679612,
+            "y": 0.49449969180617503
+          },
+          "radius": 0.0250885658399572
+        },
+        {
+          "id": 4,
+          "position": {
+            "x": 0.9213239439179908,
+            "y": 0.630279329017743
+          },
+          "radius": 0.030820866300538402
+        }
+      ]
+    }
+  }
+}
