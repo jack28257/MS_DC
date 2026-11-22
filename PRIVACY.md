@@ -36,7 +36,7 @@ To remove the complete app container, select **Delete App** in iOS Settings; **O
 
 ## Support and privacy questions
 
-Use **Settings → Support & feedback** in MirrorShot, or the [MirrorShot feedback form](https://mirrorshot-feedback.groovy-clove-2264.chatgpt.site/). No email address or account is required to submit.
+Use **Settings → Support & feedback** in MirrorShot, or the [MirrorShot feedback form](https://mirrorshot-feedback.jack2825.chatgpt.site/). No email address or account is required to submit.
 
 Choosing Submit sends your message, a random submission reference, app/iOS versions, language, device model, recent level and up to 60 app-owned diagnostic events to our feedback service. These events describe game actions and results; they do not include system-wide logs, other apps, private identifiers, message drafts or purchase records. Browser submissions provide the message and browser-form version fields without iOS device diagnostics.
 
