@@ -10,6 +10,7 @@ on:
       - 'generate_daily.py'
       - 'mirror_daily_validator.py'
       - 'mechanic_daily.py'
+      - 'daily_quality.py'
       - 'test_daily.py'
       - '.github/workflows/daily.yml'
 

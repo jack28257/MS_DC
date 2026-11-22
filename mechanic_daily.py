@@ -1,10 +1,11 @@
-"""Date-seeded optical puzzles and a branch tracer matching the iOS scene.
+"""Authored route families, sampled layouts and a branch tracer matching the iOS scene.
 
-All geometry is sampled anew. Counterfactual witnesses make every red zone block
-a real shortcut, every filter necessary, and every splitter feed a needed branch.
+Counterfactual witnesses check that the intended solution uses each filter and
+splitter and that every red zone blocks an otherwise winning shortcut.
 """
 import copy
 import math
+from dataclasses import dataclass
 import mirror_daily_validator as v
 
 
@@ -118,47 +119,209 @@ def trace(level, angles=None):
     return dict(outcome='clear' if clear else 'failed',failure=None if clear else failure or 'missed',segments=segments,collected=sorted(collected))
 
 
-def sample(day, rng):
-    kind = ('combined','splitter','hazard','filter')[day.toordinal() % 4]
-    split = kind != 'hazard'
-    red = kind in ('hazard','combined')
-    filtered = kind in ('filter','combined')
-    point = lambda x,y: dict(x=x,y=y)
-    low, mid, high = rng.uniform(.20,.28),rng.uniform(.64,.73),rng.uniform(.87,.92)
-    sx, left, right = rng.uniform(.25,.34),rng.uniform(.08,.14),rng.uniform(.78,.87)
-    emitter, junction = point(.055,low),point(sx,low)
-    a, b, target_a = point(sx,mid),point(left,high),point(rng.uniform(.81,.90),mid)
-    c, d, target_b = point(right,low),point(right,rng.uniform(.47,.57)),point(rng.uniform(.45,.62),high)
-    positions = [a,b,c,d] if split else [junction,a,b]
-    mirrors = [dict(id=i+1,position=p,length=rng.uniform(.14,.16),angleDegrees=rng.uniform(-85,85),isRotatable=True) for i,p in enumerate(positions)]
-    targets = [dict(id=1,position=target_a,radius=rng.uniform(.026,.035))]
-    if split:
-        targets.append(dict(id=2,position=target_b,radius=rng.uniform(.026,.035)))
-    paths = [[junction,a,b,target_a],[junction,c,d,target_b]] if split else [[emitter,junction,a,b,target_a]]
-    shortcut = [[junction,a,target_a],[junction,c,d,target_b]] if split else [[emitter,junction,a,target_a]]
-    colors = ['cyan','amber']
+Point = tuple[float, float]
+Path = tuple[Point, ...]
+
+
+@dataclass(frozen=True)
+class RouteLayout:
+    kind: str
+    source: Point
+    mirrors: tuple[Point, ...]
+    targets: tuple[Point, ...]
+    paths: tuple[Path, ...]
+    junctions: tuple[Point, ...] = ()
+    obstacles: tuple[tuple[Point, tuple[Path, ...]], ...] = ()
+    filters: tuple[tuple[Point, int], ...] = ()
+    target_colors: tuple[tuple[int, int], ...] = ()
+
+
+def between(start, end, fraction=.5):
+    return (start[0] + (end[0] - start[0]) * fraction,
+            start[1] + (end[1] - start[1]) * fraction)
+
+
+def obstacle_hook():
+    source, first, fork = (.07, .25), (.29, .25), (.29, .68)
+    detour, goal = (.12, .88), (.85, .68)
+    return RouteLayout(
+        'hazard', source, (first, fork, detour), (goal,),
+        ((source, first, fork, detour, goal),),
+        obstacles=((between(fork, goal), ((source, first, fork, goal),)),))
+
+
+def obstacle_switchback():
+    source, first, fork = (.07, .24), (.27, .24), (.27, .63)
+    left, far, goal = (.11, .80), (.65, .85), (.65, .63)
+    waymark = between(first, fork)
+    return RouteLayout(
+        'hazard', source, (first, fork, left, far), (waymark, goal),
+        ((source, first, fork, left, far, goal),),
+        obstacles=((between(fork, goal), ((source, first, fork, goal),)),))
+
+
+def obstacle_crossing():
+    source, first, fork = (.08, .26), (.32, .26), (.62, .43)
+    left, goal = (.22, .60), (.62, .85)
+    waymark = between(first, fork)
+    return RouteLayout(
+        'hazard', source, (first, fork, left), (waymark, goal),
+        ((source, first, fork, left, goal),),
+        obstacles=((between(fork, goal), ((source, first, fork, goal),)),))
+
+
+def split_relay():
+    source, junction = (.07, .25), (.29, .25)
+    up, left, upper_goal = (.29, .66), (.12, .86), (.79, .69)
+    across, far, outer_goal = (.76, .25), (.76, .47), (.59, .85)
+    return RouteLayout(
+        'splitter', source, (up, left, across, far), (upper_goal, outer_goal),
+        ((junction, up, left, upper_goal), (junction, across, far, outer_goal)),
+        junctions=(junction,))
+
+
+def split_offset():
+    source, junction = (.07, .24), (.31, .24)
+    direct_goal = (.31, .73)
+    across, high, inner, far_goal = (.76, .24), (.78, .55), (.57, .76), (.84, .88)
+    return RouteLayout(
+        'splitter', source, (across, high, inner), (direct_goal, far_goal),
+        ((junction, direct_goal), (junction, across, high, inner, far_goal)),
+        junctions=(junction,))
+
+
+def split_late():
+    source, first, second, junction = (.07, .22), (.20, .22), (.20, .49), (.46, .49)
+    direct_goal = (.46, .86)
+    across, high, far_goal = (.80, .49), (.79, .73), (.62, .84)
+    return RouteLayout(
+        'splitter', source, (first, second, across, high), (direct_goal, far_goal),
+        ((source, first, second, junction, direct_goal), (junction, across, high, far_goal)),
+        junctions=(junction,))
+
+
+def split_cascade():
+    source, first_junction, second_junction = (.07, .22), (.27, .22), (.57, .22)
+    first, first_goal = (.27, .53), (.11, .64)
+    second, second_goal = (.57, .72), (.38, .86)
+    third, fourth, third_goal = (.83, .22), (.83, .52), (.67, .57)
+    return RouteLayout(
+        'splitter', source, (first, second, third, fourth), (first_goal, second_goal, third_goal),
+        ((first_junction, first, first_goal), (second_junction, second, second_goal),
+         (second_junction, third, fourth, third_goal)),
+        junctions=(first_junction, second_junction))
+
+
+def color_crossover():
+    source, first, second, third = (.07, .26), (.30, .26), (.30, .73), (.73, .73)
+    first_goal, second_goal = (.30, .57), (.73, .88)
+    return RouteLayout(
+        'filter', source, (first, second, third), (first_goal, second_goal),
+        ((source, first, second, third, second_goal),),
+        filters=((between(first, first_goal), 0), (between(second, third), 1)),
+        target_colors=((1, 0), (2, 1)))
+
+
+def color_shared():
+    source, junction = (.07, .28), (.36, .28)
+    up, across = (.36, .73), (.80, .28)
+    near_goal, far_goal, other_goal = (.36, .53), (.60, .86), (.80, .65)
+    return RouteLayout(
+        'filter', source, (up, across), (near_goal, far_goal, other_goal),
+        ((junction, up, far_goal), (junction, across, other_goal)),
+        junctions=(junction,),
+        filters=((between(source, junction), 0), (between(across, other_goal), 1)),
+        target_colors=((1, 0), (2, 0), (3, 1)))
+
+
+def combined_shortcut():
+    source, junction = (.07, .25), (.30, .25)
+    up, left, upper_goal = (.30, .67), (.12, .86), (.84, .67)
+    across, outer_goal = (.80, .25), (.80, .52)
+    outer_path = (junction, across, outer_goal)
+    return RouteLayout(
+        'combined', source, (up, left, across), (upper_goal, outer_goal),
+        ((junction, up, left, upper_goal), outer_path), junctions=(junction,),
+        obstacles=((between(up, upper_goal), ((junction, up, upper_goal), outer_path)),),
+        filters=((between(junction, up), 0), (between(junction, across), 1)),
+        target_colors=((1, 0), (2, 1)))
+
+
+def combined_color_detour():
+    source, junction = (.07, .21), (.29, .21)
+    up, across_up, upper_goal = (.29, .60), (.46, .80), (.76, .86)
+    across, outer, outer_goal = (.79, .21), (.79, .49), (.54, .44)
+    outer_path = (junction, across, outer, outer_goal)
+    return RouteLayout(
+        'combined', source, (up, across_up, across, outer), (upper_goal, outer_goal),
+        ((junction, up, across_up, upper_goal), outer_path), junctions=(junction,),
+        obstacles=((between(up, upper_goal), ((junction, up, upper_goal), outer_path)),),
+        filters=((between(junction, up), 0), (between(across, outer), 1)),
+        target_colors=((1, 0), (2, 1)))
+
+
+_LAYOUTS = {
+    'obstacle-hook': obstacle_hook(),
+    'obstacle-switchback': obstacle_switchback(),
+    'obstacle-crossing': obstacle_crossing(),
+    'split-relay': split_relay(),
+    'split-offset': split_offset(),
+    'split-late': split_late(),
+    'split-cascade': split_cascade(),
+    'color-crossover': color_crossover(),
+    'color-shared': color_shared(),
+    'combined-shortcut': combined_shortcut(),
+    'combined-color-detour': combined_color_detour(),
+}
+ROUTE_FAMILIES = {family: layout.kind for family, layout in _LAYOUTS.items()}
+
+
+def sample(day, rng, family=None):
+    family = family if family is not None else rng.choice(tuple(_LAYOUTS))
+    layout = _LAYOUTS[family]
+    # A common transform preserves collinearity along routes, including required goals and devices.
+    flip_x, flip_y = rng.choice((False, True)), rng.choice((False, True))
+    scale_x, scale_y = rng.uniform(.91, 1.06), rng.uniform(.91, 1.06)
+    shift_x, shift_y = rng.uniform(-.019, .019), rng.uniform(-.026, .026)
+
+    def point(position):
+        x, y = position
+        x = .5 + (x - .5) * scale_x + shift_x
+        y = .5 + (y - .5) * scale_y + shift_y
+        return {'x': 1 - x if flip_x else x, 'y': 1 - y if flip_y else y}
+
+    def paths(routes):
+        return [[point(position) for position in route] for route in routes]
+
+    colors = ['cyan', 'amber']
     rng.shuffle(colors)
-    filters = ([dict(id=1,position=point(sx,(low+mid)/2),radius=.032,color=colors[0]),
-                dict(id=2,position=point((sx+right)/2,low),radius=.032,color=colors[1])] if filtered else [])
-    demo = dict(kind=kind,splitters=[dict(id=1,position=junction,angleDegrees=45,length=.15)] if split else [],
-                hazards=[dict(id=1,position=point((sx+target_a['x'])/2,mid),radius=rng.uniform(.042,.055))] if red else [],
-                filters=filters,targetColors={'1':colors[0],'2':colors[1]} if filtered else {},solutionAngles={},solutionPaths=paths)
-    level = dict(id=int(day.strftime('%Y%m%d')),name='Daily Challenge',shotLimit=1,parShots=1,
-                 emitter=dict(position=emitter,directionDegrees=0),mirrors=mirrors,targets=targets,demo=demo)
-    # Affine reflections preserve the topology; all coordinates are freshly sampled.
-    flip_x, flip_y = rng.choice((False,True)),rng.choice((False,True))
-    seen = set()
-    points = [emitter,junction,a,b,c,d,target_a,target_b]+[f['position'] for f in filters]+[h['position'] for h in demo['hazards']]
-    for p in points:
-        if id(p) in seen: continue
-        seen.add(id(p))
-        if flip_x: p['x']=1-p['x']
-        if flip_y: p['y']=1-p['y']
-    level['emitter']['directionDegrees']=180 if flip_x else 0
-    if split: demo['splitters'][0]['angleDegrees'] = -45 if flip_x != flip_y else 45
-    return dict(schemaVersion=2,challenge=dict(id=f'daily-{day.isoformat()}',date=day.isoformat(),title='Daily Challenge',
-                localizedTitle={'en':'Daily Challenge','fr':'Défi du jour','zh':'每日挑战'},difficulty='Challenge',level=level),
-                validation=dict(hazardRoutes={'1':shortcut} if red else {}))
+    # All junctions receive a horizontal ray travelling in the emitter's forward direction.
+    splitter_angle = -45 if flip_x != flip_y else 45
+    demo = dict(kind=layout.kind,
+                splitters=[dict(id=i, position=point(p), angleDegrees=splitter_angle, length=.15)
+                           for i, p in enumerate(layout.junctions, 1)],
+                hazards=[dict(id=i, position=point(p), radius=rng.uniform(.039, .048))
+                         for i, (p, _) in enumerate(layout.obstacles, 1)],
+                filters=[dict(id=i, position=point(p), radius=rng.uniform(.034, .041), color=colors[color])
+                         for i, (p, color) in enumerate(layout.filters, 1)],
+                targetColors={str(i): colors[color] for i, color in layout.target_colors},
+                solutionAngles={}, solutionPaths=paths(layout.paths))
+    mirrors = [dict(id=i, position=point(p), length=rng.uniform(.136, .165), angleDegrees=0, isRotatable=True)
+               for i, p in enumerate(layout.mirrors, 1)]
+    targets = [dict(id=i, position=point(p), radius=rng.uniform(.033, .039))
+               for i, p in enumerate(layout.targets, 1)]
+    level = dict(id=int(day.strftime('%Y%m%d')), name='Daily Challenge', shotLimit=1, parShots=1,
+                 emitter=dict(position=point(layout.source), directionDegrees=180 if flip_x else 0),
+                 mirrors=mirrors, targets=targets, demo=demo)
+    angles = route_angles(level)
+    for mirror in mirrors:
+        mirror['angleDegrees'] = angles[mirror['id']] + rng.choice((-1, 1)) * rng.uniform(23, 70)
+    challenge = dict(id=f'daily-{day.isoformat()}', date=day.isoformat(), title='Daily Challenge',
+                     localizedTitle={'en': 'Daily Challenge', 'fr': 'Défi du jour', 'zh': '每日挑战'},
+                     difficulty='Challenge', level=level)
+    hazard_routes = {str(i): paths(routes) for i, (_, routes) in enumerate(layout.obstacles, 1)}
+    return dict(schemaVersion=2, challenge=challenge,
+                validation=dict(hazardRoutes=hazard_routes, routeFamily=family))
 
 
 def validate_level(payload):

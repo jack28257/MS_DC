@@ -11,23 +11,62 @@ import generate_daily as daily
 
 
 class DailyTests(unittest.TestCase):
-    def test_one_year_of_new_solvable_puzzles(self):
+    def test_mixed_daily_rotation_enforces_route_and_aiming_quality(self):
         fingerprints = set()
         kinds = set()
-        for i in range(365):
-            day = dt.date(2026, 10, 17) + dt.timedelta(days=i)
+        families = set()
+        bands = set()
+        previous = []
+        for i in range(140):
+            day = dt.date(2026, 5, 15) + dt.timedelta(days=i)
             with self.subTest(day=day):
-                payload = daily.generate_challenge(day)
+                payload = daily.generate_challenge(day, previous)
                 daily.validate_challenge(payload)
+                self.assertEqual(payload["validation"]["quality"], daily.quality.clarity_profile(payload, daily.BOARD_SIZES))
+                recent = previous[-daily.quality.LOOKBACK_DAYS:]
+                family = daily.quality.family_for(payload)
+                signature = daily.quality.route_signature(payload)
+                self.assertNotIn(family, [daily.quality.family_for(old) for old in recent])
+                self.assertNotIn(signature, [daily.quality.route_signature(old) for old in recent])
+                self.assertGreaterEqual(payload["validation"]["quality"]["minIntendedChanges"], 2)
+                families.add(family)
+                bands.add(payload['challenge']['difficulty'])
+                previous.append(payload)
                 level = dict(payload["challenge"]["level"])
                 kinds.add(level.get('demo', {}).get('kind', 'classic'))
                 level.pop("id")
                 fingerprints.add(hashlib.sha256(json.dumps(level, sort_keys=True).encode()).hexdigest())
-        self.assertEqual(len(fingerprints), 365)
-        self.assertEqual(kinds, {'classic','splitter','hazard','filter','combined'})
+        self.assertEqual(len(fingerprints), 140)
+        self.assertEqual(families, {'classic-zigzag', *daily.mechanic_daily.ROUTE_FAMILIES})
+        self.assertEqual(kinds, {'classic', 'splitter', 'hazard', 'filter', 'combined'})
+        self.assertEqual(bands, {'Standard', 'Advanced'})
+
+    def test_legacy_flipped_routes_share_a_signature(self):
+        folder = Path(__file__).parent / 'challenges'
+        first = json.loads((folder / '2026-11-14.json').read_text())
+        flipped = json.loads((folder / '2026-11-22.json').read_text())
+        self.assertEqual(daily.quality.route_signature(first), daily.quality.route_signature(flipped))
+
+    def test_publication_consults_only_preceding_dates(self):
+        day = dt.date(2026, 10, 30)
+        existing = self.load_archived_fixture('2026-10-29')
+        future = self.load_archived_fixture('2026-10-31')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            folder = root / 'challenges'
+            folder.mkdir()
+            for payload in (existing, future):
+                (folder / f"{payload['challenge']['date']}.json").write_text(json.dumps(payload))
+            with patch.object(daily, 'generate_challenge', wraps=daily.generate_challenge) as generate:
+                daily.publish(day, root)
+            self.assertEqual(generate.call_args.args, (day, [existing]))
+
+    @staticmethod
+    def load_archived_fixture(day):
+        return json.loads((Path(__file__).parent / 'challenges' / f'{day}.json').read_text())
 
     def test_rerun_determinism_and_calendar_boundaries(self):
-        for key in ("2026-10-17", "2026-12-31", "2027-01-01", "2028-02-29"):
+        for key in ("2026-10-17", "2025-12-31", "2026-01-01", "2024-02-29"):
             day = dt.date.fromisoformat(key)
             self.assertEqual(daily.generate_challenge(day), daily.generate_challenge(day))
 

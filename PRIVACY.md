@@ -1,12 +1,12 @@
 # MirrorShot Privacy Policy
 
-Updated October 20, 2026 · Lumilo Studio
+Updated November 22, 2026 · JackJia Studio
 
 This policy describes MirrorShot for iOS.
 
 ## Local game data
 
-MirrorShot has no account, advertising, analytics SDK or cross-app tracking. We do not receive your gameplay progress automatically. Campaign progress, scores, achievements, daily challenge records, tutorial history, saved mirror layouts, preferences and full-game access are stored locally using app-scoped UserDefaults. Older builds may also have saved a local gem balance; it is retained but gems are not used or sold.
+MirrorShot has no account, advertising, analytics SDK or cross-app tracking. We do not receive your gameplay progress automatically. Campaign progress, scores, achievements, daily challenge records, tutorial history, preferences and full-game access are stored locally. Mirror angles for an active round stay in memory.
 
 Debug builds may write local daily-loading and notification diagnostic status inside the app container. These files are not automatically uploaded.
 
@@ -24,13 +24,13 @@ With your permission, a local notification reminds you daily at 08:00 America/To
 
 Sharing starts only when you tap Share and uses the iOS share sheet. The image contains the game result shown in its preview. Your selected destination handles shared content under its own terms. Opening an external privacy or support website uses your browser and that website's privacy practices.
 
-## Purchases
+## Full-game access
 
-Full-game access and purchase records are stored on your device. Restore purchases reads the purchase record saved on this device. MirrorShot does not collect payment card details or send purchase records to the feedback service. There are no gem purchases.
+The current release includes the full campaign. Its access is available on the device from first launch.
 
 ## Deleting local data
 
-Settings → Clear play history resets campaign scores, achievements and tutorial history. Select the daily streak option to also clear daily records. This keeps preferences, full-game access and any legacy local gem balance.
+Settings → Clear play history resets campaign scores, achievements and tutorial history. Select the daily streak option to also clear daily records. This keeps preferences and full-game access.
 
 To remove the complete app container, select **Delete App** in iOS Settings; **Offload App** keeps data. Apple device backups or transfers may retain or copy local data according to your system settings. We cannot access or delete those backups.
 
@@ -40,7 +40,7 @@ Use **Settings → Support & feedback** in MirrorShot, or the [MirrorShot feedba
 
 Choosing Submit sends your message, a random submission reference, app/iOS versions, language, device model, recent level and up to 60 app-owned diagnostic events to our feedback service. These events describe game actions and results; they do not include system-wide logs, other apps, private identifiers, message drafts or purchase records. Browser submissions provide the message and browser-form version fields without iOS device diagnostics.
 
-Unsubmitted drafts persist locally on the device or in browser storage. Submitted messages are saved locally before transmission; unconfirmed messages retry automatically while the app or page is running and when it next opens. The same submission reference prevents duplicate records. Confirmed messages are removed from the local queue.
+Unsubmitted drafts persist locally on the device or in browser storage. Submitted messages are saved locally before transmission; temporary failures are retried while the app or page is running and when it next opens. Retries use the same submission reference to avoid duplicate records. The queue removes confirmed messages. A permanently rejected message can be dealt with separately from later submissions.
 
 Feedback is stored in the developer's private inbox using OpenAI Sites and Cloudflare hosting/database services. The developer's authenticated account can read and manage feedback. Your device stores a private random key per submission, and the server stores its hash, so you can view your own message, processing status and developer replies without an account or email. A reference number alone does not grant access. Losing app data or browser storage removes access to this anonymous history. Feedback is used to investigate problems, review ideas and improve the game, not for advertising or cross-app tracking. Records remain in the inbox until reviewed or removed by the developer.
 

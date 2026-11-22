@@ -8,6 +8,7 @@ import random
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import daily_quality as quality
 import mirror_daily_validator as validator
 import mechanic_daily
 
@@ -21,38 +22,54 @@ def publication_day(now=None):
 
 
 def validate_challenge(payload):
-    original = validator.STAGE_RECT
-    try:
-        for width, height in BOARD_SIZES:
-            inset = max(18.0, min(width, height) * 0.045)
-            validator.STAGE_RECT = {"x": inset, "y": inset,
-                                    "width": width - 2 * inset, "height": height - 2 * inset}
+    for size in BOARD_SIZES:
+        with quality.board_size(size):
             validator.validate_level(payload)
             if payload["schemaVersion"] == 1:
                 assert validator.compute_shot_plan(payload["challenge"]["level"])["outcome"] != "clear", "Puzzle starts solved"
-    finally:
-        validator.STAGE_RECT = original
 
 
-def generate_challenge(day):
-    if day.toordinal() % 5 == 0:
-        return generate_classic_challenge(day)
-    seed = int.from_bytes(hashlib.sha256(f"MirrorShot-v3:{day.isoformat()}".encode()).digest(), "big")
+def generate_challenge(day, history=()):
+    seed = int.from_bytes(hashlib.sha256(f"MirrorShot-v4:{day.isoformat()}".encode()).digest(), "big")
     rng = random.Random(seed)
-    for _ in range(2048):
-        payload = mechanic_daily.sample(day, rng)
-        try:
-            validate_challenge(payload)
-            return payload
-        except AssertionError:
-            continue
-    raise RuntimeError(f"Could not generate a valid mechanic puzzle for {day}")
+    families = {"classic-zigzag": "classic", **mechanic_daily.ROUTE_FAMILIES}
+    recent = tuple(history)[-quality.LOOKBACK_DAYS:]
+    recent_families = {quality.family_for(puzzle) for puzzle in recent}
+    recent_routes = {quality.route_signature(puzzle) for puzzle in recent}
+    previous_kind = recent[-1]["challenge"]["level"].get("demo", {}).get("kind", "classic") if recent else None
+    eligible = [name for name in families if name not in recent_families]
+    rng.shuffle(eligible)
+    eligible.sort(key=lambda name: families[name] == previous_kind)
+    advanced_recently = any(puzzle["challenge"].get("difficulty") == "Advanced" for puzzle in recent[-2:])
+    preferred = "Advanced" if not advanced_recently and rng.random() < 0.55 else "Standard"
+    alternate = None
+
+    for attempt in range(20):
+        for family in eligible:
+            payload = (generate_classic_challenge(day, rng) if family == "classic-zigzag"
+                       else mechanic_daily.sample(day, rng, family=family))
+            if quality.route_signature(payload) in recent_routes:
+                continue
+            try:
+                validate_challenge(payload)
+            except AssertionError:
+                continue
+            profile = quality.clarity_profile(payload, BOARD_SIZES)
+            if profile is None:
+                continue
+            band = "Advanced" if profile["minIntendedChanges"] >= 4 else "Standard"
+            payload["challenge"]["difficulty"] = band
+            payload.setdefault("validation", {}).update(routeFamily=family, quality=profile)
+            if band == preferred:
+                return payload
+            if alternate is None:
+                alternate = payload
+        if attempt >= 2 and alternate is not None:
+            return alternate
+    raise RuntimeError(f"No daily puzzle met the variation, difficulty and aiming checks for {day}")
 
 
-def generate_classic_challenge(day):
-    # Seed by date so rerunning a job cannot replace a puzzle already being played.
-    seed = int.from_bytes(hashlib.sha256(f"MirrorShot-v2:{day.isoformat()}".encode()).digest(), "big")
-    rng = random.Random(seed)
+def generate_classic_challenge(day, rng):
     for _ in range(2048):
         n = rng.randint(3, 5)
         lower, upper = rng.uniform(0.26, 0.38), rng.uniform(0.62, 0.74)
@@ -106,7 +123,10 @@ def publish(day, output):
             raise ValueError("Archived challenge date does not match its filename")
         validate_challenge(payload)
     else:
-        payload = generate_challenge(day)
+        recent_days = [day - dt.timedelta(days=offset) for offset in range(quality.LOOKBACK_DAYS, 0, -1)]
+        recent_files = [output / "challenges" / f"{recent_day.isoformat()}.json" for recent_day in recent_days]
+        history = [json.loads(path.read_text()) for path in recent_files if path.is_file()]
+        payload = generate_challenge(day, history)
         dated.parent.mkdir(parents=True, exist_ok=True)
         dated.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     entry = output / "DailyChallenge.json"
