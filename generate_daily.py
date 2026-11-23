@@ -158,23 +158,15 @@ def publish(day, output):
         if payload["challenge"]["date"] != day.isoformat():
             raise ValueError("Archived challenge date does not match its filename")
         validate_challenge(payload)
-    else:
-        recent_days = [day - dt.timedelta(days=offset) for offset in range(quality.LOOKBACK_DAYS, 0, -1)]
-        recent_files = [output / "challenges" / f"{recent_day.isoformat()}.json" for recent_day in recent_days]
-        history = [json.loads(path.read_text()) for path in recent_files if path.is_file()]
-        payload = generate_challenge(day, history)
-        dated.parent.mkdir(parents=True, exist_ok=True)
-        write_json(dated, payload)
-    entry = output / "DailyChallenge.json"
-    try:
-        current = json.loads(entry.read_text())
-    except (FileNotFoundError, json.JSONDecodeError):
-        current = None
-    if isinstance(current, dict) and {k: v for k, v in current.items() if k != 'publishedAt'} == payload:
         print(f"Validated existing daily challenge {day}; no changes.")
         return
-    latest = dict(payload, publishedAt=dt.datetime.now(dt.timezone.utc).isoformat())
-    write_json(entry, latest)
+
+    recent_days = [day - dt.timedelta(days=offset) for offset in range(quality.LOOKBACK_DAYS, 0, -1)]
+    recent_files = [output / "challenges" / f"{recent_day.isoformat()}.json" for recent_day in recent_days]
+    history = [json.loads(path.read_text()) for path in recent_files if path.is_file()]
+    payload = generate_challenge(day, history)
+    dated.parent.mkdir(parents=True, exist_ok=True)
+    write_json(dated, payload)
     print(f"Generated and validated daily challenge {day}: {dated.name}")
 
 

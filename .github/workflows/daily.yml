@@ -43,14 +43,14 @@ jobs:
             git merge --ff-only origin/main
             day=$(TZ=America/Toronto date +%F)
             python3 generate_daily.py --date "$day"
-            git add "challenges/$day.json" DailyChallenge.json
+            git add "challenges/$day.json"
             if git diff --cached --quiet; then
               echo 'Daily data is already current.'
               exit 0
             fi
             git commit -m "Publish validated daily challenge for $day"
             if git push origin HEAD:main; then exit 0; fi
-            # Only the two generated files exist in this clean CI checkout.
+            # Discard the unpublished attempt before using the remote winner.
             git reset --hard origin/main
           done
           exit 1

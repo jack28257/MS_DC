@@ -118,24 +118,17 @@ class DailyTests(unittest.TestCase):
         day = dt.date(2026, 10, 17)
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            dated = root / "challenges" / "2026-10-17.json"
             daily.publish(day, root)
-            self.assertEqual([p.name for p in (root / "challenges").iterdir()], ["2026-10-17.json"])
-            previous = json.loads((root / "DailyChallenge.json").read_text())["challenge"]
-            archived = (root / 'challenges/2026-10-17.json').read_bytes()
-            entry = (root / 'DailyChallenge.json').read_bytes()
-            timestamp = (root / 'DailyChallenge.json').stat().st_mtime_ns
+            self.assertEqual([p for p in root.rglob("*.json")], [dated])
+            self.assertEqual(json.loads(dated.read_text())["challenge"]["date"], day.isoformat())
+            published = dated.read_bytes()
+            timestamp = dated.stat().st_mtime_ns
             with patch.object(daily, "generate_challenge", side_effect=AssertionError("Published puzzle regenerated")):
                 daily.publish(day, root)
-            self.assertEqual(json.loads((root / "DailyChallenge.json").read_text())["challenge"], previous)
-            self.assertEqual((root / 'challenges/2026-10-17.json').read_bytes(),archived)
-            self.assertEqual((root / 'DailyChallenge.json').read_bytes(),entry)
-            self.assertEqual((root / 'DailyChallenge.json').stat().st_mtime_ns,timestamp)
-            for wrong_entry in ('{}', '[]', '"wrong shape"', 'not JSON'):
-                (root/'DailyChallenge.json').write_text(wrong_entry)
-                daily.publish(day,root)
-                self.assertEqual(json.loads((root/'DailyChallenge.json').read_text())['challenge'],previous)
-                self.assertEqual((root/'challenges/2026-10-17.json').read_bytes(),archived)
-            self.assertFalse((root / "DailyChallenges.json").exists())
+            self.assertEqual(dated.read_bytes(), published)
+            self.assertEqual(dated.stat().st_mtime_ns, timestamp)
+            self.assertEqual([p for p in root.rglob("*.json")], [dated])
 
     def test_legacy_published_puzzles_remain_byte_identical(self):
         import shutil

@@ -565,7 +565,7 @@ def validate_level(payload):
 
 def main():
     if len(sys.argv) != 2:
-        raise SystemExit("usage: mirror_daily_validator.py <DailyChallenge.json>")
+        raise SystemExit("usage: mirror_daily_validator.py challenges/YYYY-MM-DD.json")
     with open(sys.argv[1], "r", encoding="utf-8") as handle:
         payload = json.load(handle)
     result = validate_level(payload)
