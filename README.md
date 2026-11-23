@@ -4,7 +4,7 @@ The Codex scheduled task **RaySkip 每日关卡生成发布** generates, validat
 
 The iPhone reminds the player at 08:00 Toronto time and checks the active date when the game returns to the foreground.
 
-The existing GitHub Actions schedule remains enabled as a secondary attempt. Both publishers validate and reuse an already published dated puzzle. The Codex task skips generation and commits when that day's published file is valid.
+The Codex task validates and reuses the first published puzzle for each date. The GitHub Actions workflow is disabled.
 
 `generate_daily.py` samples a set of twelve route families using a date seed and recent published history. Each family has its own sequence of turns, goals and mechanisms. The generator samples positions, sizes and starting angles within that structure. A geometry solver verifies an unsolved starting layout and a Perfect-capable route at seven board sizes, including short landscape.
 
@@ -18,9 +18,9 @@ python3 generate_daily.py
 python3 generate_daily.py --date 2026-10-17 --output /tmp/mirrorshot-daily
 ```
 
-The workflow is [Publish daily challenges](https://github.com/jack28257/RaySkipDaily/actions/workflows/daily.yml). Use Run workflow to retry after a failure, or use the generator locally and commit only the current dated file. A failed solver check stops publication and retains the previous files. GitHub-hosted runs use this repository's `GITHUB_TOKEN` with `contents: write` and run independently of the Mac. The Codex task uses the existing local GitHub sign-in and requires the Mac and desktop app to be available.
+To recover a missed publication, use the existing Codex task or validate the challenge locally and commit only the current dated file. A failed solver check stops publication and retains the previous files. The Codex task uses the existing local GitHub sign-in. The disabled [GitHub Actions workflow](https://github.com/jack28257/RaySkipDaily/actions/workflows/daily.yml) remains in the repository.
 
-GitHub schedules are best effort and may be delayed. The one-hour gap before the phone reset allows for normal job startup. iOS presents the local notification at 08:00 if notifications are allowed; fetching happens on foreground entry, not by assuming iOS will launch the app at an exact background time.
+The one-hour gap before the phone reset allows time for publishing. iOS presents the local notification at 08:00 if notifications are allowed. The app fetches when it opens or returns to the foreground.
 
 On 2026-10-18, no natural GitHub scheduled run appeared and the dated file was missing after 08:00. The generator itself passed verification. Today's puzzle was generated locally, validated at all four board sizes and pushed to GitHub in `d67f9e0`; the public files and the paired iPhone's GitHub load were verified. The Codex task was then enabled at the user's request. Its first natural 07:00 execution succeeded on 2026-10-19 at 07:01 Toronto (`6c14fcb`).
 
