@@ -13,7 +13,7 @@ Published files:
 - `challenges/YYYY-MM-DD.json`: one immutable puzzle for that date.
 - `DailyChallenge.json`: the latest publication, retained for older clients.
 
-The app resets the challenge at 08:00 Toronto time and requests that date's file directly. Keeping past files lets the previous challenge remain accessible between 07:00 publication and the 08:00 reset. No future puzzles are generated in advance, and the app has no offline daily generator or persistent daily-content cache.
+The app resets the challenge at 08:00 Toronto time and requests that date’s file from `https://rayskip.com/daily/challenges/YYYY-MM-DD.json`. This endpoint serves the GitHub file, and earlier builds continue to read it directly. Keeping past files lets the previous challenge remain accessible between 07:00 publication and the 08:00 reset. No future puzzles are generated in advance, and the app has no offline daily generator or persistent daily-content cache.
 
 ## Run and recover
 
