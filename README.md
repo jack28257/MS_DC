@@ -1,6 +1,6 @@
 # RaySkip daily generator
 
-The Codex scheduled task **RaySkip 每日关卡生成发布** generates, validates and publishes **one new puzzle every day at 07:00 America/Toronto** from this repository. It returns to the existing project chat and uses the local checkout; the Mac must be on and online and the desktop app running. Automation ID: `mirrorshot`.
+The Codex scheduled task **RaySkip 每日关卡生成发布** generates, validates and publishes **one new puzzle every day at 07:00 America/Toronto** from this repository. It returns to the existing project chat and uses the local checkout; the Mac must be on and online and the desktop app running.
 
 The iPhone reminds the player at 08:00 Toronto time and checks the active date when the game returns to the foreground.
 
@@ -15,7 +15,7 @@ Each publication adds one immutable `challenges/YYYY-MM-DD.json` file. The app r
 ```sh
 python3 -m unittest -v test_daily
 python3 generate_daily.py
-python3 generate_daily.py --date 2026-10-17 --output /tmp/mirrorshot-daily
+python3 generate_daily.py --date 2026-10-17 --output /tmp/rayskip-daily
 ```
 
 To recover a missed publication, use the existing Codex task or validate the challenge locally and commit only the current dated file. A failed solver check stops publication and retains the previous files. The Codex task uses the existing local GitHub sign-in. The disabled [GitHub Actions workflow](https://github.com/jack28257/RaySkipDaily/actions/workflows/daily.yml) remains in the repository.

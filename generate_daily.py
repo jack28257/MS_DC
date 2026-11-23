@@ -45,7 +45,7 @@ def preferred_board(recent, rng):
 
 
 def generate_challenge(day, history=()):
-    seed = int.from_bytes(hashlib.sha256(f"MirrorShot-v5:{day.isoformat()}".encode()).digest(), "big")
+    seed = int.from_bytes(hashlib.sha256(f"RaySkip-v5:{day.isoformat()}".encode()).digest(), "big")
     rng = random.Random(seed)
     families = {"classic-zigzag": "classic", **mechanic_daily.ROUTE_FAMILIES}
     recent = tuple(history)[-quality.LOOKBACK_DAYS:]
