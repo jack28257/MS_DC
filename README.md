@@ -2,7 +2,7 @@
 
 The Codex scheduled task **MirrorShot 每日关卡生成发布** generates, validates and publishes **one new puzzle every day at 07:00 America/Toronto** from this repository. It returns to the existing project chat and uses the local checkout; the Mac must be on and online and the desktop app running. Automation ID: `mirrorshot`.
 
-The iPhone reminds the player at 08:00, then fetches the active puzzle from GitHub when the game returns to the foreground. Before 08:00 Toronto it requests yesterday's dated file; from 08:00 it requests today's. Build 26 is required for the new schema 2 mechanic puzzles; subsequent content updates do not require reinstalling.
+The iPhone reminds the player at 08:00, then fetches the active puzzle from GitHub when the game returns to the foreground. Before 08:00 Toronto it requests yesterday's dated file; from 08:00 it requests today's. Build 26 is required for schema 2 mechanic puzzles.
 
 The existing GitHub Actions schedule remains enabled as a secondary attempt. Both publishers reuse an already published, valid dated puzzle. The Codex task skips generation and commits when both public files are already correct; it must not overwrite existing daily content, unrelated working changes or past puzzles.
 
@@ -35,6 +35,8 @@ Published date files are immutable across generator updates. Same-day retries re
 ## Generated mechanics (schema 2)
 
 `mechanic_daily.py` samples fresh positions and initial angles for splitters, red-zone detours, color-filter routes and combinations, with classic puzzles retained in the rotation. It uses the same optical rules as the native game, whose regression suite independently verifies generated fixtures. Every used splitter must matter, every filter must cause a wrong-color failure if removed, and each red zone must block a shortcut that wins when that zone is removed. All sizes must have a perfect-capable route and an unsolved initial layout. No tutorial is added to Daily mode.
+
+Some puzzles include an optional `level.dailyBoard` that adds movable mirrors, walls, or both. Supporting clients start movable mirrors in the tray. `level.mirrors` still includes their reference positions so clients that ignore `dailyBoard` can solve the underlying rotation puzzle. Walls use normalized top-left coordinates. The validator checks both layouts, tests legal stock placement and aiming clearance, and requires each wall to block a route that would otherwise win. The generator leaves at least two ordinary daily puzzles between these boards.
 
 `daily_quality.py` rejects a route family or a flip-equivalent route structure that appeared in the previous seven dates. It tests the authored solution with each mirror independently offset in both directions by 0.50° in portrait and 0.25° in landscape. On the reference board it screens for one-mirror clears using the authored settings and a 5° sweep. Standard and Advanced use the smallest clearing subset of authored angle changes on that board. These checks characterize the designed route and do not enumerate every possible solution. Player testing measures enjoyment and time to solve.
 

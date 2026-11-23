@@ -1,6 +1,8 @@
+import copy
 import datetime as dt
 import hashlib
 import json
+import random
 import tempfile
 import unittest
 from pathlib import Path
@@ -16,6 +18,7 @@ class DailyTests(unittest.TestCase):
         kinds = set()
         families = set()
         bands = set()
+        boards = set()
         previous = []
         for i in range(140):
             day = dt.date(2026, 5, 15) + dt.timedelta(days=i)
@@ -31,6 +34,11 @@ class DailyTests(unittest.TestCase):
                 self.assertGreaterEqual(payload["validation"]["quality"]["minIntendedChanges"], 2)
                 families.add(family)
                 bands.add(payload['challenge']['difficulty'])
+                board = daily.board_options(payload)
+                if any(board):
+                    self.assertFalse(any(any(daily.board_options(old)) for old in previous[-2:]))
+                    self.assertLessEqual(len(payload['challenge']['level']['mirrors']), 5)
+                boards.add(board)
                 previous.append(payload)
                 level = dict(payload["challenge"]["level"])
                 kinds.add(level.get('demo', {}).get('kind', 'classic'))
@@ -40,6 +48,36 @@ class DailyTests(unittest.TestCase):
         self.assertEqual(families, {'classic-zigzag', *daily.mechanic_daily.ROUTE_FAMILIES})
         self.assertEqual(kinds, {'classic', 'splitter', 'hazard', 'filter', 'combined'})
         self.assertEqual(bands, {'Standard', 'Advanced'})
+        self.assertEqual(boards, {(False, False), (False, True), (True, False), (True, True)})
+
+    def test_combined_stock_board_is_solvable_with_and_without_optional_data(self):
+        payload = self.combined_stock_fixture()
+        legacy = copy.deepcopy(payload)
+        del legacy['challenge']['level']['dailyBoard']
+        for size in daily.BOARD_SIZES:
+            with self.subTest(size=size), daily.quality.board_size(size):
+                result = daily.validator.validate_level(payload)
+                old_result = daily.validator.validate_level(legacy)
+                self.assertEqual(result.pop('dailyBoardChecks'), ['movableMirrors', 'wall-1'])
+                self.assertEqual(result, old_result)
+                self.assertEqual(result['mechanicChecks'], ['splitter-1', 'filter-1', 'filter-2', 'hazard-1'])
+
+    def test_invalid_stock_board_or_decorative_wall_is_rejected(self):
+        cases = [
+            ('Wall outside the board', lambda level: level['dailyBoard']['walls'][0].update(x=0)),
+            ('Wall does not block the shortcut', lambda level: level['dailyBoard']['walls'][0].update(x=.93, y=.90)),
+            ('Invalid stock mirror length', lambda level: level['mirrors'][0].update(length=.15)),
+        ]
+        for message, mutate in cases:
+            payload = self.combined_stock_fixture()
+            mutate(payload['challenge']['level'])
+            with self.subTest(message=message), self.assertRaisesRegex(AssertionError, message):
+                daily.validate_challenge(payload)
+
+    @staticmethod
+    def combined_stock_fixture():
+        return daily.mechanic_daily.sample(dt.date(2026, 9, 1), random.Random(5),
+                                           family='combined-color-detour', moves_mirrors=True, walls=True)
 
     def test_legacy_flipped_routes_share_a_signature(self):
         folder = Path(__file__).parent / 'challenges'
@@ -92,10 +130,11 @@ class DailyTests(unittest.TestCase):
             self.assertEqual((root / 'challenges/2026-10-17.json').read_bytes(),archived)
             self.assertEqual((root / 'DailyChallenge.json').read_bytes(),entry)
             self.assertEqual((root / 'DailyChallenge.json').stat().st_mtime_ns,timestamp)
-            (root/'DailyChallenge.json').write_text('{}')
-            daily.publish(day,root)
-            self.assertEqual(json.loads((root/'DailyChallenge.json').read_text())['challenge'],previous)
-            self.assertEqual((root/'challenges/2026-10-17.json').read_bytes(),archived)
+            for wrong_entry in ('{}', '[]', '"wrong shape"', 'not JSON'):
+                (root/'DailyChallenge.json').write_text(wrong_entry)
+                daily.publish(day,root)
+                self.assertEqual(json.loads((root/'DailyChallenge.json').read_text())['challenge'],previous)
+                self.assertEqual((root/'challenges/2026-10-17.json').read_bytes(),archived)
             self.assertFalse((root / "DailyChallenges.json").exists())
 
     def test_legacy_published_puzzles_remain_byte_identical(self):

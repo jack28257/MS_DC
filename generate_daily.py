@@ -5,6 +5,7 @@ import datetime as dt
 import hashlib
 import json
 import random
+from tempfile import NamedTemporaryFile
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -29,8 +30,22 @@ def validate_challenge(payload):
                 assert validator.compute_shot_plan(payload["challenge"]["level"])["outcome"] != "clear", "Puzzle starts solved"
 
 
+def board_options(payload):
+    board = payload["challenge"]["level"].get("dailyBoard") or {}
+    return board.get("movesMirrors", False), bool(board.get("walls"))
+
+
+def preferred_board(recent, rng):
+    options = [board_options(puzzle) for puzzle in recent]
+    if any(moves or walls for moves, walls in options[-2:]):
+        return False, False
+    special_boards = [(True, False), (False, True), (True, True)]
+    rng.shuffle(special_boards)
+    return min(special_boards, key=options.count)
+
+
 def generate_challenge(day, history=()):
-    seed = int.from_bytes(hashlib.sha256(f"MirrorShot-v4:{day.isoformat()}".encode()).digest(), "big")
+    seed = int.from_bytes(hashlib.sha256(f"MirrorShot-v5:{day.isoformat()}".encode()).digest(), "big")
     rng = random.Random(seed)
     families = {"classic-zigzag": "classic", **mechanic_daily.ROUTE_FAMILIES}
     recent = tuple(history)[-quality.LOOKBACK_DAYS:]
@@ -39,15 +54,21 @@ def generate_challenge(day, history=()):
     previous_kind = recent[-1]["challenge"]["level"].get("demo", {}).get("kind", "classic") if recent else None
     eligible = [name for name in families if name not in recent_families]
     rng.shuffle(eligible)
+    desired_board = preferred_board(recent, rng)
     eligible.sort(key=lambda name: families[name] == previous_kind)
     advanced_recently = any(puzzle["challenge"].get("difficulty") == "Advanced" for puzzle in recent[-2:])
     preferred = "Advanced" if not advanced_recently and rng.random() < 0.55 else "Standard"
     alternate = None
+    alternate_rank = (-1, -1)
 
     for attempt in range(20):
         for family in eligible:
-            payload = (generate_classic_challenge(day, rng) if family == "classic-zigzag"
-                       else mechanic_daily.sample(day, rng, family=family))
+            moves, walls = desired_board
+            walls = walls and family in mechanic_daily.WALL_FAMILIES
+            if family == "classic-zigzag":
+                payload = generate_classic_challenge(day, rng, moves_mirrors=moves)
+            else:
+                payload = mechanic_daily.sample(day, rng, family=family, moves_mirrors=moves, walls=walls)
             if quality.route_signature(payload) in recent_routes:
                 continue
             try:
@@ -60,16 +81,18 @@ def generate_challenge(day, history=()):
             band = "Advanced" if profile["minIntendedChanges"] >= 4 else "Standard"
             payload["challenge"]["difficulty"] = band
             payload.setdefault("validation", {}).update(routeFamily=family, quality=profile)
-            if band == preferred:
+            rank = (board_options(payload) == desired_board, band == preferred)
+            if rank == (True, True):
                 return payload
-            if alternate is None:
+            if rank > alternate_rank:
                 alternate = payload
+                alternate_rank = rank
         if attempt >= 2 and alternate is not None:
             return alternate
     raise RuntimeError(f"No daily puzzle met the variation, difficulty and aiming checks for {day}")
 
 
-def generate_classic_challenge(day, rng):
+def generate_classic_challenge(day, rng, *, moves_mirrors=False):
     for _ in range(2048):
         n = rng.randint(3, 5)
         lower, upper = rng.uniform(0.26, 0.38), rng.uniform(0.62, 0.74)
@@ -91,7 +114,7 @@ def generate_classic_challenge(day, rng):
         targets.append({"id": n + 1, "position": end, "radius": rng.uniform(0.023, 0.032)})
         level = {"id": int(day.strftime("%Y%m%d")), "name": "Daily Challenge", "shotLimit": 1, "parShots": 1,
                  "emitter": {"position": emitter, "directionDegrees": 0},
-                 "mirrors": [{"id": i + 1, "position": p, "length": rng.uniform(0.11, 0.15),
+                 "mirrors": [{"id": i + 1, "position": p, "length": .148 if moves_mirrors else rng.uniform(0.11, 0.15),
                               "angleDegrees": 0, "isRotatable": True} for i, p in enumerate(points)],
                  "targets": targets}
         # Reflect entire paths for variety while preserving their intended geometry.
@@ -102,6 +125,8 @@ def generate_classic_challenge(day, rng):
         angles = validator.official_angles(level)
         for mirror in level["mirrors"]:
             mirror["angleDegrees"] = angles[mirror["id"]] + rng.choice((-1, 1)) * rng.uniform(22, 75)
+        if moves_mirrors:
+            level["dailyBoard"] = {"movesMirrors": True, "walls": []}
         payload = {"schemaVersion": 1, "challenge": {
             "id": f"daily-{day.isoformat()}", "date": day.isoformat(), "title": "Daily Challenge",
             "localizedTitle": {"en": "Daily Challenge", "fr": "Défi du jour", "zh": "每日挑战"},
@@ -112,6 +137,17 @@ def generate_classic_challenge(day, rng):
         except AssertionError:
             continue
     raise RuntimeError(f"Could not generate a valid puzzle for {day}")
+
+
+def write_json(path, payload):
+    # An interrupted publication leaves the previous file available for retry.
+    with NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as temporary:
+        temporary_path = Path(temporary.name)
+    try:
+        temporary_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        temporary_path.replace(path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
 
 
 def publish(day, output):
@@ -128,17 +164,17 @@ def publish(day, output):
         history = [json.loads(path.read_text()) for path in recent_files if path.is_file()]
         payload = generate_challenge(day, history)
         dated.parent.mkdir(parents=True, exist_ok=True)
-        dated.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+        write_json(dated, payload)
     entry = output / "DailyChallenge.json"
     try:
         current = json.loads(entry.read_text())
     except (FileNotFoundError, json.JSONDecodeError):
         current = None
-    if current is not None and {k:v for k,v in current.items() if k != 'publishedAt'} == payload:
+    if isinstance(current, dict) and {k: v for k, v in current.items() if k != 'publishedAt'} == payload:
         print(f"Validated existing daily challenge {day}; no changes.")
         return
     latest = dict(payload, publishedAt=dt.datetime.now(dt.timezone.utc).isoformat())
-    entry.write_text(json.dumps(latest, ensure_ascii=False, indent=2) + "\n")
+    write_json(entry, latest)
     print(f"Generated and validated daily challenge {day}: {dated.name}")
 
 

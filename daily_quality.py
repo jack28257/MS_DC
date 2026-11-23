@@ -70,7 +70,8 @@ def clarity_profile(payload, sizes):
     """Check aiming margin on every board and screen for quick ways to clear."""
     level = payload['challenge']['level']
     mechanic = payload['schemaVersion'] == 2
-    trace = mechanic_daily.trace if mechanic else solver.compute_shot_plan
+    board = level.get('dailyBoard') or {}
+    trace = mechanic_daily.trace if mechanic or board else solver.compute_shot_plan
     solve_angles = mechanic_daily.route_angles if mechanic else solver.official_angles
     mirror_ids = [mirror['id'] for mirror in level['mirrors']]
 
@@ -86,6 +87,8 @@ def clarity_profile(payload, sizes):
                     adjusted = dict(solution)
                     adjusted[key] += sign * margin
                     if not clears(adjusted):
+                        return None
+                    if board.get('movesMirrors') and not solver.legal_stock_layout(level, adjusted, board['walls']):
                         return None
 
     with board_size(sizes[0]):

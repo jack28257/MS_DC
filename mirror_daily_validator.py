@@ -94,6 +94,42 @@ def ray_segment_intersection(origin, direction, segment_start, segment_end):
     return {"point": v_add(origin, v_mul(direction, ray_distance)), "distance": ray_distance}
 
 
+def wall_bounds(wall, padding=0):
+    rect = STAGE_RECT
+    left = rect["x"] + wall["x"] * rect["width"] - padding
+    right = rect["x"] + (wall["x"] + wall["width"]) * rect["width"] + padding
+    bottom = rect["y"] + (1 - wall["y"] - wall["height"]) * rect["height"] - padding
+    top = rect["y"] + (1 - wall["y"]) * rect["height"] + padding
+    return left, bottom, right, top
+
+
+def rectangle_edges(bounds):
+    left, bottom, right, top = bounds
+    corners = ((left, bottom), (right, bottom), (right, top), (left, top))
+    return list(zip(corners, corners[1:] + corners[:1]))
+
+
+def nearest_wall_hit(walls, origin, direction, max_distance):
+    nearest = None
+    for wall in walls:
+        left, bottom, right, top = bounds = wall_bounds(wall)
+        if left <= origin[0] < right and bottom <= origin[1] < top:
+            return {"point": origin, "distance": 0.0}
+        for start, end in rectangle_edges(bounds):
+            hit = ray_segment_intersection(origin, direction, start, end)
+            if hit and hit["distance"] <= max_distance:
+                nearest = hit
+                max_distance = hit["distance"]
+    return nearest
+
+
+def active_board(level, angles, use_daily_board=True):
+    board = (level.get("dailyBoard") or {}) if use_daily_board else {}
+    if board.get("movesMirrors"):
+        level = dict(level, mirrors=[mirror for mirror in level["mirrors"] if mirror["id"] in angles])
+    return level, board.get("walls", [])
+
+
 def ray_circle_intersection(origin, direction, center, radius, max_distance):
     to_center = v_sub(center, origin)
     projected = dot(to_center, direction)
@@ -157,6 +193,18 @@ def mirror_angle(incoming_direction, outgoing_direction):
     if length(bisector) <= EPS:
         return vector_to_angle((-incoming_direction[1], incoming_direction[0]))
     return vector_to_angle(bisector)
+
+
+def angles_along_routes(level, routes):
+    angles = {}
+    centers = [(mirror["id"], point_from_normalized(mirror["position"])) for mirror in level["mirrors"]]
+    for route in routes:
+        points = list(map(point_from_normalized, route))
+        for before, center, after in zip(points, points[1:], points[2:]):
+            for mirror_id, mirror_center in centers:
+                if dist(center, mirror_center) < 0.5:
+                    angles[mirror_id] = mirror_angle(v_sub(center, before), v_sub(after, center))
+    return angles
 
 
 def official_angles(level):
@@ -346,6 +394,93 @@ def path_economy(path_length):
     return min(max(1 - overflow / 2.0, 0.0), 1.0)
 
 
+def legal_stock_layout(level, angles, walls):
+    """Match the stock mirror's drop clearance in the native placement session."""
+    board = STAGE_RECT
+    left, bottom = board["x"] + 6, board["y"] + 6
+    right, top = board["x"] + board["width"] - 6, board["y"] + board["height"] - 6
+    clearance = max(6, scaled_length(0.028)) + 5
+    points = [point_from_normalized(node["position"]) for node in [level["emitter"], *level["targets"]]]
+    padded_walls = [wall_bounds(wall, padding=5) for wall in walls]
+    segments = []
+    for mirror in level["mirrors"]:
+        position = mirror["position"]
+        if not (0.055 <= position["x"] <= 0.945 and 0.15 <= position["y"] <= 0.935):
+            return False
+        segment = mirror_segment(mirror, angles[mirror["id"]])
+        start, end = segment["start"], segment["end"]
+        if any(not (left <= x <= right and bottom <= y <= top) for x, y in (start, end)):
+            return False
+        if any(dist(point, closest_point_on_segment(start, end, point)) < clearance for point in points):
+            return False
+        direction = norm(v_sub(end, start))
+        length_ = dist(start, end)
+        for bounds in padded_walls:
+            x0, y0, x1, y1 = bounds
+            if any(x0 <= x <= x1 and y0 <= y <= y1 for x, y in (start, end)):
+                return False
+            for edge_start, edge_end in rectangle_edges(bounds):
+                hit = ray_segment_intersection(start, direction, edge_start, edge_end)
+                if hit and hit["distance"] <= length_:
+                    return False
+        for other_start, other_end in segments:
+            if min(
+                *(dist(point, closest_point_on_segment(other_start, other_end, point)) for point in (start, end)),
+                *(dist(point, closest_point_on_segment(start, end, point)) for point in (other_start, other_end)),
+            ) < 12:
+                return False
+            hit = ray_segment_intersection(start, direction, other_start, other_end)
+            if hit and hit["distance"] <= length_:
+                return False
+        segments.append((start, end))
+    return True
+
+
+def validate_daily_board(payload, trace, angles):
+    level = payload["challenge"]["level"]
+    board = level.get("dailyBoard")
+    if board is None:
+        return []
+    assert isinstance(board, dict) and type(board.get("movesMirrors")) is bool, "Invalid daily board"
+    walls = board.get("walls")
+    assert isinstance(walls, list) and len(walls) <= 4, "Too many daily walls"
+    assert board["movesMirrors"] or walls, "Empty daily board options"
+    for wall in walls:
+        assert isinstance(wall, dict), "Invalid wall"
+        values = [wall.get(key) for key in ("x", "y", "width", "height")]
+        assert all(type(value) in (int, float) and math.isfinite(value) for value in values), "Invalid wall bounds"
+        x, y, width, height = values
+        assert 0 < x < x + width < 1 and 0 < y < y + height < 1, "Wall outside the board"
+        left, bottom, right, top = wall_bounds(wall)
+        for node in [level["emitter"], *level["targets"]]:
+            px, py = point_from_normalized(node["position"])
+            assert not (left <= px <= right and bottom <= py <= top), "Wall covers an emitter or target"
+    assert trace(level, angles)["outcome"] == "clear", "Daily board has no authored clear"
+    assert trace(level)["outcome"] != "clear", "Daily board starts solved"
+    checks = []
+    if board["movesMirrors"]:
+        assert len(level["mirrors"]) <= 5, "Too many stock mirrors for the tray"
+        assert all(mirror["length"] == 0.148 for mirror in level["mirrors"]), "Invalid stock mirror length"
+        assert legal_stock_layout(level, angles, walls), "Authored stock placement is illegal"
+        for mirror_id in angles:
+            remaining = {key: value for key, value in angles.items() if key != mirror_id}
+            assert trace(level, remaining)["outcome"] != "clear", "Unused stock mirror"
+        checks.append("movableMirrors")
+    if walls:
+        witnesses = payload.get("validation", {}).get("wallRoutes", {})
+        for index, wall in enumerate(walls):
+            routes = witnesses.get(str(index + 1))
+            assert routes, "Wall lacks a shortcut witness"
+            alternate = angles | angles_along_routes(level, routes)
+            if board["movesMirrors"]:
+                assert legal_stock_layout(level, alternate, walls), "Wall shortcut has an illegal placement"
+            assert trace(level, alternate)["outcome"] != "clear", "Wall does not block the shortcut"
+            open_board = dict(board, walls=walls[:index] + walls[index + 1:])
+            assert trace(dict(level, dailyBoard=open_board), alternate)["outcome"] == "clear", "Decorative wall"
+            checks.append(f"wall-{index + 1}")
+    return checks
+
+
 def validate_level(payload):
     if payload.get("schemaVersion") == 2:
         from mechanic_daily import validate_level as validate_mechanics
@@ -410,7 +545,7 @@ def validate_level(payload):
     )
     assert perfect
 
-    return {
+    result = {
         "officialAngles": angles,
         "authoredOfficialAngleDeltas": deltas,
         "targetOrder": collected,
@@ -421,6 +556,11 @@ def validate_level(payload):
         "pathEconomy": path_economy_score,
         "perfectScoreCapable": perfect,
     }
+    if "dailyBoard" in level:
+        from mechanic_daily import trace
+        assert compute_shot_plan(level)["outcome"] != "clear", "Base puzzle starts solved"
+        result["dailyBoardChecks"] = validate_daily_board(payload, trace, angles)
+    return result
 
 
 def main():
