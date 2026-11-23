@@ -1,4 +1,4 @@
-# Mirror Shot daily generator
+# Ray Skip daily generator
 
 The Codex scheduled task **MirrorShot 每日关卡生成发布** generates, validates and publishes **one new puzzle every day at 07:00 America/Toronto** from this repository. It returns to the existing project chat and uses the local checkout; the Mac must be on and online and the desktop app running. Automation ID: `mirrorshot`.
 
