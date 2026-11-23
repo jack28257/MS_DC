@@ -1,12 +1,12 @@
-# Ray Skip Privacy Policy
+# RaySkip Privacy Policy
 
 Updated November 23, 2026 · JackJia Studio
 
-This policy describes Ray Skip for iOS.
+This policy describes RaySkip for iOS.
 
 ## Local game data
 
-Ray Skip has no account, advertising, analytics SDK or cross-app tracking. We do not receive your gameplay progress automatically. Campaign progress, scores, achievements, daily challenge records, tutorial history, preferences and full-game access are stored locally. Mirror angles for an active round stay in memory.
+RaySkip has no account, advertising, analytics SDK or cross-app tracking. We do not receive your gameplay progress automatically. Campaign progress, scores, achievements, daily challenge records, tutorial history, preferences and full-game access are stored locally. Mirror angles for an active round stay in memory.
 
 Debug builds may write local daily-loading and notification diagnostic status inside the app container. These files are not automatically uploaded.
 
@@ -18,11 +18,11 @@ Cloudflare serves the challenge published on GitHub and may process technical in
 
 ## Notifications
 
-With your permission, a local notification reminds you daily at 08:00 America/Toronto. Ray Skip does not use a remote push notification server. You can disable the reminder in game settings and manage notification permission in iOS Settings.
+With your permission, a local notification reminds you daily at 08:00 America/Toronto. RaySkip does not use a remote push notification server. You can disable the reminder in game settings and manage notification permission in iOS Settings.
 
 ## Sharing and external links
 
-Tapping Share opens the iOS share sheet with the image shown in the preview, accompanying text and the Ray Skip website link. Your selected destination handles shared content under its own terms. Cloudflare hosts rayskip.com and may process ordinary network information when you visit.
+Tapping Share opens the iOS share sheet with the image shown in the preview, accompanying text and the RaySkip website link. Your selected destination handles shared content under its own terms. Cloudflare hosts rayskip.com and may process ordinary network information when you visit.
 
 ## Full-game access
 
@@ -36,7 +36,7 @@ To remove the complete app container, select **Delete App** in iOS Settings; **O
 
 ## Support and privacy questions
 
-Use **Settings → Support & feedback** in Ray Skip, or the [Ray Skip feedback form](https://rayskip.com/support). No email address or account is required to submit.
+Use **Settings → Support & feedback** in RaySkip, or the [RaySkip feedback form](https://rayskip.com/support). No email address or account is required to submit.
 
 Choosing Submit sends your message, a random submission reference, app/iOS versions, language, device model, recent level and up to 60 app-owned diagnostic events to our feedback service. These events describe game actions and results; they do not include system-wide logs, other apps, private identifiers, message drafts or purchase records. Browser submissions provide the message and browser-form version fields without iOS device diagnostics.
 
@@ -48,4 +48,4 @@ The hosting providers receive ordinary technical network information, including 
 
 To ask about a submission or request deletion, send a new message with the feedback reference. The developer reviews these requests.
 
-The full policy is also bundled inside Ray Skip under Settings → Privacy policy, in English, French and Chinese. Policy changes will be reflected here and in the app.
+The full policy is also bundled inside RaySkip under Settings → Privacy policy, in English, French and Chinese. Policy changes will be reflected here and in the app.

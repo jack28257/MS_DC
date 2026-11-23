@@ -1,8 +1,8 @@
-# Ray Skip daily generator
+# RaySkip daily generator
 
-The Codex scheduled task **MirrorShot 每日关卡生成发布** generates, validates and publishes **one new puzzle every day at 07:00 America/Toronto** from this repository. It returns to the existing project chat and uses the local checkout; the Mac must be on and online and the desktop app running. Automation ID: `mirrorshot`.
+The Codex scheduled task **RaySkip 每日关卡生成发布** generates, validates and publishes **one new puzzle every day at 07:00 America/Toronto** from this repository. It returns to the existing project chat and uses the local checkout; the Mac must be on and online and the desktop app running. Automation ID: `mirrorshot`.
 
-The iPhone reminds the player at 08:00, then fetches the active puzzle from GitHub when the game returns to the foreground. Before 08:00 Toronto it requests yesterday's dated file; from 08:00 it requests today's. Build 26 is required for schema 2 mechanic puzzles.
+The iPhone reminds the player at 08:00 Toronto time and checks the active date when the game returns to the foreground. Build 26 is required for schema 2 puzzles.
 
 The existing GitHub Actions schedule remains enabled as a secondary attempt. Both publishers reuse an already published, valid dated puzzle. The Codex task skips generation and commits when both public files are already correct; it must not overwrite existing daily content, unrelated working changes or past puzzles.
 
