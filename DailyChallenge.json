@@ -1,24 +1,24 @@
 {
   "schemaVersion": 2,
   "challenge": {
-    "id": "daily-2026-11-22",
-    "date": "2026-11-22",
+    "id": "daily-2026-11-23",
+    "date": "2026-11-23",
     "title": "Daily Challenge",
     "localizedTitle": {
       "en": "Daily Challenge",
       "fr": "Défi du jour",
       "zh": "每日挑战"
     },
-    "difficulty": "Challenge",
+    "difficulty": "Advanced",
     "level": {
-      "id": 20261122,
+      "id": 20261123,
       "name": "Daily Challenge",
       "shotLimit": 1,
       "parShots": 1,
       "emitter": {
         "position": {
-          "x": 0.055,
-          "y": 0.7366132775620775
+          "x": 0.07,
+          "y": 0.29
         },
         "directionDegrees": 0
       },
@@ -26,31 +26,51 @@
         {
           "id": 1,
           "position": {
-            "x": 0.29042080738482434,
-            "y": 0.7366132775620775
+            "x": 0.36,
+            "y": 0.7
           },
-          "length": 0.14724148265591525,
-          "angleDegrees": -74.72781565871807,
+          "length": 0.149,
+          "angleDegrees": 8,
           "isRotatable": true
         },
         {
           "id": 2,
           "position": {
-            "x": 0.29042080738482434,
-            "y": 0.2927664341922085
+            "x": 0.56,
+            "y": 0.88
           },
-          "length": 0.15548639151013557,
-          "angleDegrees": -36.664526180804124,
+          "length": 0.149,
+          "angleDegrees": -43,
           "isRotatable": true
         },
         {
           "id": 3,
           "position": {
-            "x": 0.08941499710000242,
-            "y": 0.09285963737086755
+            "x": 0.8,
+            "y": 0.88
           },
-          "length": 0.15554309149168272,
-          "angleDegrees": -77.84390840467222,
+          "length": 0.149,
+          "angleDegrees": 67,
+          "isRotatable": true
+        },
+        {
+          "id": 4,
+          "position": {
+            "x": 0.74,
+            "y": 0.29
+          },
+          "length": 0.149,
+          "angleDegrees": -26,
+          "isRotatable": true
+        },
+        {
+          "id": 5,
+          "position": {
+            "x": 0.74,
+            "y": 0.52
+          },
+          "length": 0.149,
+          "angleDegrees": 70,
           "isRotatable": true
         }
       ],
@@ -58,78 +78,159 @@
         {
           "id": 1,
           "position": {
-            "x": 0.8249729594785408,
-            "y": 0.2927664341922085
+            "x": 0.89,
+            "y": 0.7
           },
-          "radius": 0.030046765952439897
+          "radius": 0.034
+        },
+        {
+          "id": 2,
+          "position": {
+            "x": 0.31,
+            "y": 0.575
+          },
+          "radius": 0.033
         }
       ],
       "demo": {
-        "kind": "hazard",
-        "splitters": [],
-        "hazards": [
+        "kind": "filter",
+        "splitters": [
           {
             "id": 1,
             "position": {
-              "x": 0.5576968834316826,
-              "y": 0.2927664341922085
+              "x": 0.36,
+              "y": 0.29
             },
-            "radius": 0.05210186715066048
+            "angleDegrees": 45,
+            "length": 0.147
           }
         ],
-        "filters": [],
-        "targetColors": {},
+        "filters": [
+          {
+            "id": 1,
+            "position": {
+              "x": 0.36,
+              "y": 0.475
+            },
+            "radius": 0.032,
+            "color": "cyan"
+          },
+          {
+            "id": 2,
+            "position": {
+              "x": 0.55,
+              "y": 0.29
+            },
+            "radius": 0.031,
+            "color": "amber"
+          }
+        ],
+        "targetColors": {
+          "1": "cyan",
+          "2": "amber"
+        },
+        "hazards": [],
         "solutionAngles": {},
         "solutionPaths": [
           [
             {
-              "x": 0.055,
-              "y": 0.7366132775620775
+              "x": 0.36,
+              "y": 0.29
             },
             {
-              "x": 0.29042080738482434,
-              "y": 0.7366132775620775
+              "x": 0.36,
+              "y": 0.7
             },
             {
-              "x": 0.29042080738482434,
-              "y": 0.2927664341922085
+              "x": 0.56,
+              "y": 0.88
             },
             {
-              "x": 0.08941499710000242,
-              "y": 0.09285963737086755
+              "x": 0.8,
+              "y": 0.88
             },
             {
-              "x": 0.8249729594785408,
-              "y": 0.2927664341922085
+              "x": 0.89,
+              "y": 0.7
+            }
+          ],
+          [
+            {
+              "x": 0.36,
+              "y": 0.29
+            },
+            {
+              "x": 0.74,
+              "y": 0.29
+            },
+            {
+              "x": 0.74,
+              "y": 0.52
+            },
+            {
+              "x": 0.31,
+              "y": 0.575
             }
           ]
+        ]
+      },
+      "dailyBoard": {
+        "movesMirrors": false,
+        "walls": [
+          {
+            "x": 0.62,
+            "y": 0.17,
+            "width": 0.124,
+            "height": 0.165
+          }
         ]
       }
     }
   },
   "validation": {
-    "hazardRoutes": {
+    "routeFamily": "crossed-color-wall-relay",
+    "wallRoutes": {
       "1": [
         [
           {
-            "x": 0.055,
-            "y": 0.7366132775620775
+            "x": 0.36,
+            "y": 0.29
           },
           {
-            "x": 0.29042080738482434,
-            "y": 0.7366132775620775
+            "x": 0.36,
+            "y": 0.7
           },
           {
-            "x": 0.29042080738482434,
-            "y": 0.2927664341922085
+            "x": 0.89,
+            "y": 0.7
+          }
+        ],
+        [
+          {
+            "x": 0.36,
+            "y": 0.29
           },
           {
-            "x": 0.8249729594785408,
-            "y": 0.2927664341922085
+            "x": 0.74,
+            "y": 0.29
+          },
+          {
+            "x": 0.74,
+            "y": 0.52
+          },
+          {
+            "x": 0.31,
+            "y": 0.575
           }
         ]
       ]
+    },
+    "quality": {
+      "minIntendedChanges": 5,
+      "portraitMarginDegrees": 0.5,
+      "landscapeMarginDegrees": 0.25,
+      "shortcutSweepStepDegrees": 5
     }
   },
-  "publishedAt": "2026-11-22T12:02:48.799204+00:00"
+  "publishedAt": "2026-11-23T12:08:09.985294+00:00"
 }
