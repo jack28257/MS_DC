@@ -3,6 +3,9 @@ import json
 import math
 import sys
 
+if not __debug__:
+    raise RuntimeError("Daily challenge validation requires Python assertions. Run without -O or PYTHONOPTIMIZE.")
+
 EPS = 1e-9
 SCENE_WIDTH = 390.0
 SCENE_HEIGHT = 620.0
@@ -197,13 +200,13 @@ def mirror_angle(incoming_direction, outgoing_direction):
 
 def angles_along_routes(level, routes):
     angles = {}
-    centers = [(mirror["id"], point_from_normalized(mirror["position"])) for mirror in level["mirrors"]]
     for route in routes:
-        points = list(map(point_from_normalized, route))
-        for before, center, after in zip(points, points[1:], points[2:]):
-            for mirror_id, mirror_center in centers:
-                if dist(center, mirror_center) < 0.5:
-                    angles[mirror_id] = mirror_angle(v_sub(center, before), v_sub(after, center))
+        for before, center, after in zip(route, route[1:], route[2:]):
+            mirror = next((m for m in level["mirrors"] if m["position"]["x"] == center["x"]
+                           and m["position"]["y"] == center["y"]), None)
+            if mirror is not None:
+                a, b, c = map(point_from_normalized, (before, center, after))
+                angles[mirror["id"]] = mirror_angle(v_sub(b, a), v_sub(c, b))
     return angles
 
 
@@ -399,8 +402,13 @@ def legal_stock_layout(level, angles, walls):
     board = STAGE_RECT
     left, bottom = board["x"] + 6, board["y"] + 6
     right, top = board["x"] + board["width"] - 6, board["y"] + board["height"] - 6
-    clearance = max(6, scaled_length(0.028)) + 5
-    points = [point_from_normalized(node["position"]) for node in [level["emitter"], *level["targets"]]]
+    def keep_clear(node, radius):
+        return point_from_normalized(node["position"]), radius + 5
+
+    nodes = [keep_clear(node, max(6, scaled_length(0.028))) for node in [level["emitter"], *level["targets"]]]
+    if demo := level.get("demo"):
+        nodes.extend(keep_clear(zone, scaled_length(zone["radius"])) for zone in demo["hazards"] + demo["filters"])
+        nodes.extend(keep_clear(s, max(14, min(23, scaled_length(s["length"]) * 0.48))) for s in demo["splitters"])
     padded_walls = [wall_bounds(wall, padding=5) for wall in walls]
     segments = []
     for mirror in level["mirrors"]:
@@ -411,7 +419,7 @@ def legal_stock_layout(level, angles, walls):
         start, end = segment["start"], segment["end"]
         if any(not (left <= x <= right and bottom <= y <= top) for x, y in (start, end)):
             return False
-        if any(dist(point, closest_point_on_segment(start, end, point)) < clearance for point in points):
+        if any(dist(point, closest_point_on_segment(start, end, point)) < clearance for point, clearance in nodes):
             return False
         direction = norm(v_sub(end, start))
         length_ = dist(start, end)
@@ -482,44 +490,47 @@ def validate_daily_board(payload, trace, angles):
 
 
 def validate_level(payload):
-    if payload.get("schemaVersion") == 2:
-        from mechanic_daily import validate_level as validate_mechanics
-        return validate_mechanics(payload)
+    schema = payload["schemaVersion"]
+    assert type(schema) is int and schema in (1, 2), "Unsupported daily challenge schema"
     challenge = payload["challenge"]
     level = challenge["level"]
-    assert payload["schemaVersion"] == 1
     assert challenge["id"] == f"daily-{challenge['date']}"
-    assert challenge["title"] == "Daily Challenge"
-    assert challenge["localizedTitle"] == {
-        "en": "Daily Challenge",
-        "fr": "Défi du jour",
-        "zh": "每日挑战",
-    }
     assert level["id"] == int(challenge["date"].replace("-", ""))
-    assert level["name"] == "Daily Challenge"
     assert level["shotLimit"] == 1
     assert level["parShots"] == 1
-    assert 3 <= len(level["mirrors"]) <= 5
-    assert 3 <= len(level["targets"]) <= 6
+    mirror_counts, target_counts = (range(3, 6), range(4, 7)) if schema == 1 else (range(1, 9), range(1, 7))
+    assert len(level["mirrors"]) in mirror_counts, "Invalid daily mirror count"
+    assert len(level["targets"]) in target_counts, "Invalid daily target count"
+    assert math.isfinite(level["emitter"]["directionDegrees"])
+    for objects in (level["mirrors"], level["targets"]):
+        assert len({obj["id"] for obj in objects}) == len(objects), "Duplicate daily object ID"
 
     for point in [level["emitter"]["position"]] + [m["position"] for m in level["mirrors"]] + [t["position"] for t in level["targets"]]:
         assert 0.0 < point["x"] < 1.0
         assert 0.0 < point["y"] < 1.0
 
     for mirror in level["mirrors"]:
-        assert 0.08 <= mirror["length"] <= 0.16
+        assert mirror["isRotatable"] is True and math.isfinite(mirror["angleDegrees"])
+        assert 0.08 <= mirror["length"] <= (0.16 if schema == 1 else 0.18)
 
     for target in level["targets"]:
         assert 0.014 <= target["radius"] <= 0.04
 
+    if schema == 2:
+        from mechanic_daily import validate_mechanics
+        return validate_mechanics(payload)
+
+    assert level["name"] == challenge["title"] == "Daily Challenge"
+    assert challenge["localizedTitle"] == {"en": "Daily Challenge", "fr": "Défi du jour", "zh": "每日挑战"}
+    assert level.get("demo") is None, "Mechanics require schema 2"
     angles = official_angles(level)
     assert angles is not None
+    assert compute_shot_plan(level)["outcome"] != "clear", "Puzzle starts solved"
 
     deltas = {}
     for mirror in level["mirrors"]:
         delta = abs(shortest_mirror_line_angle_delta(mirror["angleDegrees"], angles[mirror["id"]]))
         deltas[mirror["id"]] = delta
-        assert math.isfinite(mirror["angleDegrees"])
 
     plan = compute_shot_plan(level, angle_overrides=angles)
     assert plan["outcome"] == "clear"
@@ -558,7 +569,6 @@ def validate_level(payload):
     }
     if "dailyBoard" in level:
         from mechanic_daily import trace
-        assert compute_shot_plan(level)["outcome"] != "clear", "Base puzzle starts solved"
         result["dailyBoardChecks"] = validate_daily_board(payload, trace, angles)
     return result
 

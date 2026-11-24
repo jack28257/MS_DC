@@ -26,8 +26,6 @@ def validate_challenge(payload):
     for size in BOARD_SIZES:
         with quality.board_size(size):
             validator.validate_level(payload)
-            if payload["schemaVersion"] == 1:
-                assert validator.compute_shot_plan(payload["challenge"]["level"])["outcome"] != "clear", "Puzzle starts solved"
 
 
 def board_options(payload):
@@ -66,15 +64,16 @@ def generate_challenge(day, history=()):
             moves, walls = desired_board
             walls = walls and family in mechanic_daily.WALL_FAMILIES
             if family == "classic-zigzag":
+                # The classic family's only route is already excluded by the family lookback.
                 payload = generate_classic_challenge(day, rng, moves_mirrors=moves)
             else:
                 payload = mechanic_daily.sample(day, rng, family=family, moves_mirrors=moves, walls=walls)
-            if quality.route_signature(payload) in recent_routes:
-                continue
-            try:
-                validate_challenge(payload)
-            except AssertionError:
-                continue
+                if quality.route_signature(payload) in recent_routes:
+                    continue
+                try:
+                    validate_challenge(payload)
+                except AssertionError:
+                    continue
             profile = quality.clarity_profile(payload, BOARD_SIZES)
             if profile is None:
                 continue

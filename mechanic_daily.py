@@ -351,20 +351,32 @@ def sample(day, rng, family=None, *, moves_mirrors=False, walls=False):
                 validation=validation)
 
 
-def validate_level(payload):
-    challenge, level = payload['challenge'],payload['challenge']['level']
+def validate_mechanics(payload):
+    level = payload['challenge']['level']
     demo = level['demo']
-    assert payload['schemaVersion']==2
-    assert challenge['id']==f"daily-{challenge['date']}" and level['id']==int(challenge['date'].replace('-',''))
-    assert level['shotLimit']==level['parShots']==1
-    assert 1 <= len(level['mirrors']) <= 8 and 1 <= len(level['targets']) <= 6
-    assert demo['kind'] in ('splitter','hazard','filter','combined')
-    assert len({m['id'] for m in level['mirrors']})==len(level['mirrors'])
-    assert len({t['id'] for t in level['targets']})==len(level['targets'])
-    objects=[level['emitter']]+level['mirrors']+level['targets']+demo['splitters']+demo['filters']+demo['hazards']
-    assert all(0<p['position']['x']<1 and 0<p['position']['y']<1 for p in objects)
-    assert all(m['isRotatable'] and .08<=m['length']<=.18 and math.isfinite(m['angleDegrees']) for m in level['mirrors'])
-    assert all(.014<=t['radius']<=.04 for t in level['targets'])
+    splitters, hazards, filters = demo['splitters'], demo['hazards'], demo['filters']
+    target_colors = demo['targetColors']
+    kinds = {
+        'splitter': splitters and not hazards and not filters,
+        'hazard': hazards and not splitters and not filters,
+        'filter': filters and not hazards and target_colors,
+        'combined': splitters and hazards and filters and target_colors,
+    }
+    assert kinds.get(demo['kind']), "Mechanics do not match the daily kind"
+    assert len(splitters) <= 3 and len(hazards) <= 4 and len(filters) <= 4
+    for objects in (splitters, hazards, filters):
+        assert len({obj['id'] for obj in objects}) == len(objects), "Duplicate mechanic ID"
+    assert all(.08 <= s['length'] <= .20 and math.isfinite(s['angleDegrees']) for s in splitters)
+    assert all(.02 <= h['radius'] <= .12 for h in hazards)
+    assert all(.015 <= f['radius'] <= .06 and f['color'] in ('cyan', 'amber') for f in filters)
+    assert target_colors.keys() <= {str(t['id']) for t in level['targets']}
+    assert all(color in ('white', 'cyan', 'amber') for color in target_colors.values())
+    assert demo['solutionAngles'].keys() <= {str(m['id']) for m in level['mirrors']}
+    assert all(math.isfinite(a) for a in demo['solutionAngles'].values())
+    paths = demo['solutionPaths']
+    assert 1 <= len(paths) <= 8 and all(2 <= len(path) <= 12 for path in paths)
+    points = [obj['position'] for obj in splitters + hazards + filters] + [p for path in paths for p in path]
+    assert all(0 < p['x'] < 1 and 0 < p['y'] < 1 for p in points)
     angles=route_angles(level)
     assert set(angles)=={m['id'] for m in level['mirrors']}
     if 'dailyBoard' not in level:

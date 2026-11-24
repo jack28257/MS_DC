@@ -3,6 +3,8 @@ import datetime as dt
 import hashlib
 import json
 import random
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,7 +14,53 @@ from unittest.mock import patch
 import generate_daily as daily
 
 
+def app_contract_samples():
+    # All changes are in memory. Both the native loader and the publisher use these cases.
+    archive = Path(__file__).parent / 'challenges'
+    classic = json.loads((archive / '2026-10-17.json').read_text())
+    targets = classic['challenge']['level']['targets']
+    classic['challenge']['level']['targets'] = [targets[0], *targets[-2:]]
+    yield 'three classic targets', classic, False
+
+    unknown_target = json.loads((archive / '2026-10-22.json').read_text())
+    unknown_target['challenge']['level']['demo']['targetColors']['999'] = 'amber'
+    yield 'color for an unknown target', unknown_target, False
+
+    for name, boundary, extreme in (('lower', .15, min), ('upper', .935, max)):
+        stock = json.loads((archive / '2026-11-15.json').read_text())
+        level = stock['challenge']['level']
+        level['dailyBoard'] = {'movesMirrors': True, 'walls': []}
+        for mirror in level['mirrors']:
+            mirror['length'] = .148
+        edge = extreme(m['position']['y'] for m in level['mirrors'])
+        for obj in [level['emitter'], *level['mirrors'], *level['targets']]:
+            position = obj['position']
+            position['y'] = boundary if position['y'] == edge else position['y'] + (boundary - edge)
+        yield f'{name} stock boundary', stock, True
+        outside = copy.deepcopy(stock)
+        mirror = next(m for m in outside['challenge']['level']['mirrors'] if m['position']['y'] == boundary)
+        mirror['position']['y'] += -.000001 if boundary == .15 else .000001
+        yield f'outside {name} stock boundary', outside, False
+
+
 class DailyTests(unittest.TestCase):
+    def test_app_contract(self):
+        for name, payload, valid in app_contract_samples():
+            with self.subTest(name=name):
+                if valid:
+                    daily.validate_challenge(payload)
+                else:
+                    with self.assertRaises(AssertionError):
+                        daily.validate_challenge(payload)
+
+    def test_optimized_interpreter_cannot_publish(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = subprocess.run([sys.executable, "-O", str(daily.ROOT / "generate_daily.py"),
+                                     "--date", "2026-10-17", "--output", tmp], capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("requires Python assertions", result.stderr)
+            self.assertEqual(list(Path(tmp).iterdir()), [])
+
     def test_mixed_daily_rotation_enforces_route_and_aiming_quality(self):
         fingerprints = set()
         kinds = set()
