@@ -26,6 +26,15 @@ def app_contract_samples():
     unknown_target['challenge']['level']['demo']['targetColors']['999'] = 'amber'
     yield 'color for an unknown target', unknown_target, False
 
+    day = dt.date(2026, 9, 1)
+    fixed_splitter = daily.mechanic_daily.sample(day, random.Random(5), family='split-relay')
+    yield 'fixed splitter outlets', fixed_splitter, True
+    duplicate_outlets = copy.deepcopy(fixed_splitter)
+    duplicate_outlets['challenge']['level']['demo']['splitters'][0]['outputAnglesDegrees'] = [0, 360]
+    yield 'same splitter outlet twice', duplicate_outlets, False
+    wall_detour = daily.mechanic_daily.sample(day, random.Random(5), family='obstacle-hook')
+    yield 'classic wall detour', wall_detour, True
+
     for name, boundary, extreme in (('lower', .15, min), ('upper', .935, max)):
         stock = json.loads((archive / '2026-11-15.json').read_text())
         level = stock['challenge']['level']
@@ -89,12 +98,15 @@ class DailyTests(unittest.TestCase):
                 boards.add(board)
                 previous.append(payload)
                 level = dict(payload["challenge"]["level"])
-                kinds.add(level.get('demo', {}).get('kind', 'classic'))
+                demo = level.get('demo', {})
+                kinds.add(demo.get('kind', 'classic'))
+                self.assertFalse(demo.get('hazards'))
+                self.assertTrue(all(len(splitter['outputAnglesDegrees']) == 2 for splitter in demo.get('splitters', [])))
                 level.pop("id")
                 fingerprints.add(hashlib.sha256(json.dumps(level, sort_keys=True).encode()).hexdigest())
         self.assertEqual(len(fingerprints), 140)
         self.assertEqual(families, {'classic-zigzag', *daily.mechanic_daily.ROUTE_FAMILIES})
-        self.assertEqual(kinds, {'classic', 'splitter', 'hazard', 'filter', 'combined'})
+        self.assertEqual(kinds, {'classic', 'splitter', 'filter'})
         self.assertEqual(bands, {'Standard', 'Advanced'})
         self.assertEqual(boards, {(False, False), (False, True), (True, False), (True, True)})
 
@@ -106,9 +118,37 @@ class DailyTests(unittest.TestCase):
             with self.subTest(size=size), daily.quality.board_size(size):
                 result = daily.validator.validate_level(payload)
                 old_result = daily.validator.validate_level(legacy)
-                self.assertEqual(result.pop('dailyBoardChecks'), ['movableMirrors', 'wall-1'])
+                self.assertEqual(result.pop('dailyBoardChecks'), ['movableMirrors', 'wall-1', 'wall-2'])
                 self.assertEqual(result, old_result)
-                self.assertEqual(result['mechanicChecks'], ['splitter-1', 'filter-1', 'filter-2', 'hazard-1'])
+                self.assertEqual(result['mechanicChecks'], ['splitter-1', 'filter-1', 'filter-2'])
+
+    def test_published_splitter_layout_uses_fixed_outlets_without_looping(self):
+        level = self.load_archived_fixture('2026-11-24')['challenge']['level']
+        for board in daily.BOARD_SIZES:
+            with self.subTest(board=board), daily.quality.board_size(board):
+                angles = daily.mechanic_daily.route_angles(level)
+                for fixed in (False, True):
+                    self.assertEqual(daily.mechanic_daily.trace(level, angles, fixed_splitters=fixed)['outcome'], 'clear')
+                    self.assertNotEqual(daily.mechanic_daily.trace(level, fixed_splitters=fixed)['outcome'], 'clear')
+
+    def test_fixed_outlet_departures_are_independent_of_incidence(self):
+        level = {'emitter': {'position': {}, 'directionDegrees': 0}, 'mirrors': [], 'targets': [],
+                 'demo': {'splitters': [{'id': 1, 'position': {'x': .5, 'y': .5}, 'length': .15,
+                                         'angleDegrees': 45, 'outputAnglesDegrees': [0, 90]}]}}
+        point = daily.validator.point_from_normalized
+        body = daily.mechanic_daily.splitter_body_radius(level['demo']['splitters'][0])
+        center = point({'x': .5, 'y': .5})
+        outlet_offset = body * 18.3 / 20
+        expected = {(center[0] + outlet_offset, center[1]), (center[0], center[1] + outlet_offset)}
+        stage = daily.validator.STAGE_RECT
+        for incidence in (0, 45, 90, 180, 240, 285):
+            with self.subTest(incidence=incidence):
+                x, y = daily.validator.angle_to_vector(incidence)
+                level['emitter'].update(directionDegrees=incidence,
+                                        position={'x': .5 - x * 70 / stage['width'],
+                                                  'y': .5 - y * 70 / stage['height']})
+                branches = daily.mechanic_daily.trace(level)['segments'][1:]
+                self.assertEqual({segment['start'] for segment in branches}, expected)
 
     def test_invalid_stock_board_or_decorative_wall_is_rejected(self):
         cases = [

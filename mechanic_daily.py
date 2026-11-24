@@ -1,8 +1,4 @@
-"""Authored route families, sampled layouts and a branch tracer matching the iOS scene.
-
-Counterfactual witnesses check that the intended solution uses each filter and
-splitter and that every red zone blocks an otherwise winning shortcut.
-"""
+"""Authored routes and an optical tracer for published and current iOS rules."""
 import copy
 import math
 from dataclasses import dataclass
@@ -27,15 +23,36 @@ def route_angles(level, routes=None):
     return explicit | v.angles_along_routes(level, routes if routes is not None else demo["solutionPaths"])
 
 
-def trace(level, angles=None, *, use_daily_board=True):
+def splitter_body_radius(splitter):
+    return max(14, min(23, v.scaled_length(splitter['length']) * .48))
+
+
+def splitter_outlets(level, splitter):
+    if 'outputAnglesDegrees' in splitter:
+        return tuple(v.angle_to_vector(angle % 360) for angle in splitter['outputAnglesDegrees'])
+    center = v.point_from_normalized(splitter['position'])
+    outlets = []
+    for path in level['demo']['solutionPaths']:
+        for start, end in zip(path, path[1:]):
+            if start == splitter['position']:
+                direction = v.norm(v.v_sub(v.point_from_normalized(end), center))
+                if v.length(direction) > v.EPS and not any(v.dot(direction, outlet) > .999999 for outlet in outlets):
+                    outlets.append(direction)
+    if len(outlets) == 2:
+        return outlets
+    forward = v.angle_to_vector(level['emitter']['directionDegrees'])
+    return forward, v.reflect(forward, splitter['angleDegrees'])
+
+
+def trace(level, angles=None, *, use_daily_board=True, fixed_splitters=None):
     level, walls = v.active_board(level, angles or {}, use_daily_board)
     demo = level.get("demo", {})
-    queue = [(v.point_from_normalized(level["emitter"]["position"]), v.angle_to_vector(level["emitter"]["directionDegrees"]), "white", 0., 0)]
+    queue = [(v.point_from_normalized(level["emitter"]["position"]), v.angle_to_vector(level["emitter"]["directionDegrees"]), "white", 0., 0, None, frozenset())]
     segments, red_distance, red_point, failure = [], math.inf, None, None
     processed = 0
     while queue and processed < 256:
         queue.sort(key=lambda r: r[3])
-        origin, direction, color, travelled, interactions = queue.pop(0)
+        origin, direction, color, travelled, interactions, departing_splitter, splitter_ancestry = queue.pop(0)
         processed += 1
         if interactions >= 24:
             failure = "limit"
@@ -51,11 +68,17 @@ def trace(level, angles=None, *, use_daily_board=True):
         if mirror:
             hit, kind, obj = mirror, "mirror", next(m for m in level['mirrors'] if m['id'] == mirror['mirrorID'])
         for splitter in demo.get('splitters', ()):
+            if splitter['id'] == departing_splitter:
+                continue
             center = v.point_from_normalized(splitter['position'])
-            axis = v.v_mul(v.angle_to_vector(splitter['angleDegrees']), v.scaled_length(splitter['length'])/2)
-            candidate = v.ray_segment_intersection(origin, direction, v.v_sub(center, axis), v.v_add(center, axis))
+            fixed = fixed_splitters if fixed_splitters is not None else 'outputAnglesDegrees' in splitter
+            if fixed:
+                candidate = circle_entry(origin, direction, center, splitter_body_radius(splitter) * .79)
+            else:
+                axis = v.v_mul(v.angle_to_vector(splitter['angleDegrees']), v.scaled_length(splitter['length']) / 2)
+                candidate = v.ray_segment_intersection(origin, direction, v.v_sub(center, axis), v.v_add(center, axis))
             if candidate and candidate['distance'] < hit['distance']:
-                hit, kind, obj = candidate, 'splitter', splitter
+                hit, kind, obj = candidate, 'fixedSplitter' if fixed else 'splitter', splitter
         for filter_ in demo.get('filters', ()):
             center, radius = v.point_from_normalized(filter_['position']), v.scaled_length(filter_['radius'])
             if v.dist(origin, center) <= radius + .1:
@@ -89,13 +112,25 @@ def trace(level, angles=None, *, use_daily_board=True):
             if distance < red_distance:
                 red_distance, red_point = distance, hit['point']
             continue
-        def enqueue(d, c):
-            wall = v.nearest_wall_hit(walls, hit['point'], d, .8)
-            offset = wall['distance'] / 2 if wall else .8
-            queue.append((v.v_add(hit['point'],v.v_mul(d,offset)),d,c,distance+offset,interactions+1))
+        def enqueue(d, c, *, start=None, offset=.8, departing=None, ancestry=splitter_ancestry):
+            start = hit['point'] if start is None else start
+            wall = v.nearest_wall_hit(walls, start, d, offset)
+            advance = wall['distance'] / 2 if wall else offset
+            queue.append((v.v_add(start, v.v_mul(d, advance)), d, c, distance + advance, interactions + 1, departing, ancestry))
         if kind == 'splitter':
             enqueue(direction, color)
             enqueue(v.reflect(direction,obj['angleDegrees']),color)
+        elif kind == 'fixedSplitter':
+            activation = (obj['id'], color)
+            # The same branch returning with the same color would repeat both fixed paths.
+            if activation in splitter_ancestry:
+                continue
+            ancestry = splitter_ancestry | {activation}
+            center = v.point_from_normalized(obj['position'])
+            outlet_offset = splitter_body_radius(obj) * (18.3 / 20)
+            for outlet in splitter_outlets(level, obj):
+                start = v.v_add(center, v.v_mul(outlet, outlet_offset))
+                enqueue(outlet, color, start=start, offset=0, departing=obj['id'], ancestry=ancestry)
         elif kind == 'filter':
             enqueue(direction,obj['color'])
         elif kind == 'mirror':
@@ -132,7 +167,7 @@ class RouteLayout:
     targets: tuple[Point, ...]
     paths: tuple[Path, ...]
     junctions: tuple[Point, ...] = ()
-    obstacles: tuple[tuple[Point, tuple[Path, ...]], ...] = ()
+    required_walls: tuple[tuple[Point, tuple[Path, ...]], ...] = ()
     filters: tuple[tuple[Point, int], ...] = ()
     target_colors: tuple[tuple[int, int], ...] = ()
     wall_shortcuts: tuple[tuple[Point, tuple[Path, ...]], ...] = ()
@@ -147,29 +182,27 @@ def obstacle_hook():
     source, first, fork = (.07, .25), (.29, .25), (.29, .68)
     detour, goal = (.12, .88), (.85, .68)
     return RouteLayout(
-        'hazard', source, (first, fork, detour), (goal,),
+        'wall', source, (first, fork, detour), (goal,),
         ((source, first, fork, detour, goal),),
-        obstacles=((between(fork, goal), ((source, first, fork, goal),)),))
+        required_walls=((between(fork, goal), ((source, first, fork, goal),)),))
 
 
 def obstacle_switchback():
     source, first, fork = (.07, .24), (.27, .24), (.27, .63)
     left, far, goal = (.11, .80), (.65, .85), (.65, .63)
-    waymark = between(first, fork)
     return RouteLayout(
-        'hazard', source, (first, fork, left, far), (waymark, goal),
+        'wall', source, (first, fork, left, far), (goal,),
         ((source, first, fork, left, far, goal),),
-        obstacles=((between(fork, goal), ((source, first, fork, goal),)),))
+        required_walls=((between(fork, goal), ((source, first, fork, goal),)),))
 
 
 def obstacle_crossing():
     source, first, fork = (.08, .26), (.32, .26), (.62, .43)
     left, goal = (.22, .60), (.62, .85)
-    waymark = between(first, fork)
     return RouteLayout(
-        'hazard', source, (first, fork, left), (waymark, goal),
+        'wall', source, (first, fork, left), (goal,),
         ((source, first, fork, left, goal),),
-        obstacles=((between(fork, goal), ((source, first, fork, goal),)),))
+        required_walls=((between(fork, goal), ((source, first, fork, goal),)),))
 
 
 def split_relay():
@@ -252,7 +285,7 @@ def combined_shortcut():
     return RouteLayout(
         'combined', source, (up, left, across), (upper_goal, outer_goal),
         ((junction, up, left, upper_goal), outer_path), junctions=(junction,),
-        obstacles=((between(up, upper_goal), ((junction, up, upper_goal), outer_path)),),
+        required_walls=((between(up, upper_goal), ((junction, up, upper_goal), outer_path)),),
         filters=((between(junction, up), 0), (between(junction, across), 1)),
         target_colors=((1, 0), (2, 1)))
 
@@ -265,7 +298,7 @@ def combined_color_detour():
     return RouteLayout(
         'combined', source, (up, across_up, across, outer), (upper_goal, outer_goal),
         (upper_path, outer_path), junctions=(junction,),
-        obstacles=((between(up, upper_goal), ((junction, up, upper_goal), outer_path)),),
+        required_walls=((between(up, upper_goal), ((junction, up, upper_goal), outer_path)),),
         filters=((between(junction, up), 0), (between(junction, across), 1)),
         target_colors=((1, 0), (2, 1)),
         wall_shortcuts=((between(across, outer_goal), (upper_path, (junction, across, outer_goal))),))
@@ -285,7 +318,8 @@ _LAYOUTS = {
     'combined-color-detour': combined_color_detour(),
 }
 ROUTE_FAMILIES = {family: layout.kind for family, layout in _LAYOUTS.items()}
-WALL_FAMILIES = frozenset(family for family, layout in _LAYOUTS.items() if layout.wall_shortcuts)
+WALL_FAMILIES = frozenset(family for family, layout in _LAYOUTS.items() if layout.required_walls or layout.wall_shortcuts)
+REQUIRED_WALL_FAMILIES = frozenset(family for family, layout in _LAYOUTS.items() if layout.required_walls)
 
 
 def sample(day, rng, family=None, *, moves_mirrors=False, walls=False):
@@ -305,49 +339,59 @@ def sample(day, rng, family=None, *, moves_mirrors=False, walls=False):
     def paths(routes):
         return [[point(position) for position in route] for route in routes]
 
-    colors = ['cyan', 'amber']
-    rng.shuffle(colors)
-    # All junctions receive a horizontal ray travelling in the emitter's forward direction.
-    splitter_angle = -45 if flip_x != flip_y else 45
-    demo = dict(kind=layout.kind,
-                splitters=[dict(id=i, position=point(p), angleDegrees=splitter_angle, length=.15)
-                           for i, p in enumerate(layout.junctions, 1)],
-                hazards=[dict(id=i, position=point(p), radius=rng.uniform(.039, .048))
-                         for i, (p, _) in enumerate(layout.obstacles, 1)],
-                filters=[dict(id=i, position=point(p), radius=rng.uniform(.034, .041), color=colors[color])
-                         for i, (p, color) in enumerate(layout.filters, 1)],
-                targetColors={str(i): colors[color] for i, color in layout.target_colors},
-                solutionAngles={}, solutionPaths=paths(layout.paths))
-    mirrors = [dict(id=i, position=point(p), length=.148 if moves_mirrors else rng.uniform(.136, .165),
+    wall_only = layout.kind == 'wall'
+    target_positions = layout.targets
+    if wall_only:
+        source, first, fork = layout.paths[0][:3]
+        waymarks = (between(source, first, .55), between(first, fork, .35), between(first, fork, .71))
+        target_positions = (*waymarks, *target_positions)
+    mirrors = [dict(id=i, position=point(p), length=.148 if moves_mirrors else rng.uniform(.136, .16 if wall_only else .165),
                     angleDegrees=0, isRotatable=True)
                for i, p in enumerate(layout.mirrors, 1)]
     targets = [dict(id=i, position=point(p), radius=rng.uniform(.033, .039))
-               for i, p in enumerate(layout.targets, 1)]
+               for i, p in enumerate(target_positions, 1)]
     level = dict(id=int(day.strftime('%Y%m%d')), name='Daily Challenge', shotLimit=1, parShots=1,
                  emitter=dict(position=point(layout.source), directionDegrees=180 if flip_x else 0),
-                 mirrors=mirrors, targets=targets, demo=demo)
-    angles = route_angles(level)
+                 mirrors=mirrors, targets=targets)
+    if not wall_only:
+        colors = ['cyan', 'amber']
+        rng.shuffle(colors)
+        # Authored forks use horizontal and vertical outlets so the previous client can still solve them.
+        horizontal_outlet = 180 if flip_x else 0
+        vertical_outlet = -90 if flip_y else 90
+        legacy_mirror_angle = (horizontal_outlet + vertical_outlet) / 2
+        level['demo'] = dict(
+            kind='filter' if layout.kind == 'combined' else layout.kind,
+            splitters=[dict(id=i, position=point(p), angleDegrees=legacy_mirror_angle, length=.15,
+                            outputAnglesDegrees=[horizontal_outlet, vertical_outlet])
+                       for i, p in enumerate(layout.junctions, 1)],
+            hazards=[],
+            filters=[dict(id=i, position=point(p), radius=rng.uniform(.034, .041), color=colors[color])
+                     for i, (p, color) in enumerate(layout.filters, 1)],
+            targetColors={str(i): colors[color] for i, color in layout.target_colors},
+            solutionAngles={}, solutionPaths=paths(layout.paths))
+    angles = v.official_angles(level) if wall_only else route_angles(level)
     for mirror in mirrors:
         mirror['angleDegrees'] = angles[mirror['id']] + rng.choice((-1, 1)) * rng.uniform(23, 70)
     challenge = dict(id=f'daily-{day.isoformat()}', date=day.isoformat(), title='Daily Challenge',
                      localizedTitle={'en': 'Daily Challenge', 'fr': 'Défi du jour', 'zh': '每日挑战'},
                      difficulty='Challenge', level=level)
-    hazard_routes = {str(i): paths(routes) for i, (_, routes) in enumerate(layout.obstacles, 1)}
-    validation = dict(hazardRoutes=hazard_routes, routeFamily=family)
+    validation = dict(routeFamily=family)
     wall_rectangles = []
-    if walls:
-        if not layout.wall_shortcuts:
-            raise ValueError(f"No wall shortcut authored for {family}")
-        for center, _ in layout.wall_shortcuts:
-            transformed = point(center)
-            width = .048 * scale_x
-            height = .046 * scale_y
-            wall_rectangles.append(dict(x=transformed['x'] - width / 2,
-                                        y=1 - transformed['y'] - height / 2, width=width, height=height))
-        validation['wallRoutes'] = {str(i): paths(routes) for i, (_, routes) in enumerate(layout.wall_shortcuts, 1)}
+    shortcuts = layout.required_walls + (layout.wall_shortcuts if walls else ())
+    if walls and not shortcuts:
+        raise ValueError(f"No wall shortcut authored for {family}")
+    for center, _ in shortcuts:
+        transformed = point(center)
+        width = .048 * scale_x
+        height = .046 * scale_y
+        wall_rectangles.append(dict(x=transformed['x'] - width / 2,
+                                    y=1 - transformed['y'] - height / 2, width=width, height=height))
+    if shortcuts:
+        validation['wallRoutes'] = {str(i): paths(routes) for i, (_, routes) in enumerate(shortcuts, 1)}
     if moves_mirrors or wall_rectangles:
         level['dailyBoard'] = dict(movesMirrors=moves_mirrors, walls=wall_rectangles)
-    return dict(schemaVersion=2, challenge=challenge,
+    return dict(schemaVersion=1 if wall_only else 2, challenge=challenge,
                 validation=validation)
 
 
@@ -367,6 +411,13 @@ def validate_mechanics(payload):
     for objects in (splitters, hazards, filters):
         assert len({obj['id'] for obj in objects}) == len(objects), "Duplicate mechanic ID"
     assert all(.08 <= s['length'] <= .20 and math.isfinite(s['angleDegrees']) for s in splitters)
+    for splitter in splitters:
+        if 'outputAnglesDegrees' in splitter:
+            outlets = splitter['outputAnglesDegrees']
+            assert isinstance(outlets, list) and len(outlets) == 2, 'A splitter requires two outlet angles'
+            assert all(type(angle) in (int, float) and math.isfinite(angle) for angle in outlets), 'Invalid splitter outlet angle'
+            first, second = (angle % 360 for angle in outlets)
+            assert abs(math.sin((first - second) * math.pi / 360)) > .0001, 'Splitter outlets must point in different directions'
     assert all(.02 <= h['radius'] <= .12 for h in hazards)
     assert all(.015 <= f['radius'] <= .06 and f['color'] in ('cyan', 'amber') for f in filters)
     assert target_colors.keys() <= {str(t['id']) for t in level['targets']}
@@ -395,6 +446,9 @@ def validate_mechanic_routes(level, payload, angles):
     plan=trace(level,angles)
     assert plan['outcome']=='clear',plan
     assert trace(level)['outcome']!='clear','Puzzle starts solved'
+    if any('outputAnglesDegrees' in splitter for splitter in demo['splitters']):
+        assert trace(level, angles, fixed_splitters=False)['outcome'] == 'clear', 'Previous client cannot solve this splitter layout'
+        assert trace(level, fixed_splitters=False)['outcome'] != 'clear', 'Previous client starts solved'
     # Every target must be hit in the full precision core, matching the iOS demo score.
     for target in level['targets']:
         hits=[s for s in plan['segments'] if s['targetID']==target['id']]

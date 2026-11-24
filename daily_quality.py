@@ -29,11 +29,11 @@ def route_signature(payload):
     """Ignore object coordinates, colors, and flips when comparing route structure."""
     level = payload['challenge']['level']
     demo = level.get('demo')
-    if not demo:
+    if not demo and family_for(payload) == 'classic-zigzag':
         return (('zigzag',),)
 
     points = lambda objects: {(obj['position']['x'], obj['position']['y']) for obj in objects}
-    junctions = points(demo['splitters'])
+    junctions = points(demo['splitters']) if demo else set()
     mirrors = points(level['mirrors'])
     targets = points(level['targets'])
 
@@ -51,7 +51,10 @@ def route_signature(payload):
             return 0
         return 1 if delta > 0 else -1
 
-    routes = [[(point['x'], point['y']) for point in route] for route in demo['solutionPaths']]
+    paths = demo['solutionPaths'] if demo else [[obj['position'] for obj in (
+        level['emitter'], *level['mirrors'], level['targets'][-1]
+    )]]
+    routes = [[(point['x'], point['y']) for point in route] for route in paths]
     roles_and_vectors = [tuple((point_role(a), axis(b[0] - a[0]), axis(b[1] - a[1]), point_role(b))
                                for a, b in zip(route, route[1:])) for route in routes]
 
@@ -61,9 +64,8 @@ def route_signature(payload):
 
 
 def family_for(payload):
-    if payload['schemaVersion'] == 1:
-        return 'classic-zigzag'
-    return payload.get('validation', {}).get('routeFamily')
+    default = 'classic-zigzag' if payload['schemaVersion'] == 1 else None
+    return payload.get('validation', {}).get('routeFamily', default)
 
 
 def clarity_profile(payload, sizes):

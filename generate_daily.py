@@ -33,35 +33,47 @@ def board_options(payload):
     return board.get("movesMirrors", False), bool(board.get("walls"))
 
 
-def preferred_board(recent, rng):
+def preferred_board(recent, rng, *, reserve_wall=False):
     options = [board_options(puzzle) for puzzle in recent]
     if any(moves or walls for moves, walls in options[-2:]):
         return False, False
-    special_boards = [(True, False), (False, True), (True, True)]
+    special_boards = [(False, True), (True, True)] if reserve_wall else [(True, False), (False, True), (True, True)]
     rng.shuffle(special_boards)
     return min(special_boards, key=options.count)
 
 
 def generate_challenge(day, history=()):
-    seed = int.from_bytes(hashlib.sha256(f"RaySkip-v5:{day.isoformat()}".encode()).digest(), "big")
+    seed = int.from_bytes(hashlib.sha256(f"RaySkip-v6:{day.isoformat()}".encode()).digest(), "big")
     rng = random.Random(seed)
     families = {"classic-zigzag": "classic", **mechanic_daily.ROUTE_FAMILIES}
     recent = tuple(history)[-quality.LOOKBACK_DAYS:]
     recent_families = {quality.family_for(puzzle) for puzzle in recent}
     recent_routes = {quality.route_signature(puzzle) for puzzle in recent}
-    previous_kind = recent[-1]["challenge"]["level"].get("demo", {}).get("kind", "classic") if recent else None
+    previous_kind = None
+    if recent:
+        previous = recent[-1]
+        encoded_kind = previous['challenge']['level'].get('demo', {}).get('kind', 'classic')
+        previous_kind = families.get(quality.family_for(previous), encoded_kind)
     eligible = [name for name in families if name not in recent_families]
     rng.shuffle(eligible)
-    desired_board = preferred_board(recent, rng)
+    plain_families = set(eligible) - mechanic_daily.REQUIRED_WALL_FAMILIES
+    # Leave enough plain routes for the two ordinary days after a special board.
+    reserve_wall = len(plain_families) <= 2
+    desired_board = preferred_board(recent, rng, reserve_wall=reserve_wall)
+    prefer_required = reserve_wall and any(desired_board)
     eligible.sort(key=lambda name: families[name] == previous_kind)
     advanced_recently = any(puzzle["challenge"].get("difficulty") == "Advanced" for puzzle in recent[-2:])
     preferred = "Advanced" if not advanced_recently and rng.random() < 0.55 else "Standard"
     alternate = None
-    alternate_rank = (-1, -1)
+    alternate_rank = (-1, -1, -1)
 
-    for attempt in range(20):
+    # Classic zigzags can need more samples when they are the last eligible plain route.
+    attempts = 160 if desired_board == (False, False) and plain_families == {'classic-zigzag'} else 20
+    for attempt in range(attempts):
         for family in eligible:
             moves, walls = desired_board
+            if family in mechanic_daily.REQUIRED_WALL_FAMILIES and desired_board == (False, False):
+                continue
             walls = walls and family in mechanic_daily.WALL_FAMILIES
             if family == "classic-zigzag":
                 # The classic family's only route is already excluded by the family lookback.
@@ -80,14 +92,17 @@ def generate_challenge(day, history=()):
             band = "Advanced" if profile["minIntendedChanges"] >= 4 else "Standard"
             payload["challenge"]["difficulty"] = band
             payload.setdefault("validation", {}).update(routeFamily=family, quality=profile)
-            rank = (board_options(payload) == desired_board, band == preferred)
-            if rank == (True, True):
+            rank = (not prefer_required or family in mechanic_daily.REQUIRED_WALL_FAMILIES,
+                    board_options(payload) == desired_board, band == preferred)
+            if all(rank):
                 return payload
             if rank > alternate_rank:
                 alternate = payload
                 alternate_rank = rank
-        if attempt >= 2 and alternate is not None:
+        if attempt >= 2 and alternate is not None and alternate_rank[0]:
             return alternate
+    if alternate is not None:
+        return alternate
     raise RuntimeError(f"No daily puzzle met the variation, difficulty and aiming checks for {day}")
 
 
