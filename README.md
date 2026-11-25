@@ -1,26 +1,27 @@
-# RaySkip daily generator
+# RaySkip daily challenges
 
-The Codex scheduled task **RaySkip 每日关卡生成发布** generates, validates and publishes **one new puzzle every day at 07:00 America/Toronto** from this repository. It returns to the existing project chat and uses the local checkout; the Mac must be on and online and the desktop app running.
+The Codex scheduled task **RaySkip 每日关卡生成发布** replenishes **seven future dates** at 07:00 America/Toronto from its dedicated chat and this local checkout. It authors original puzzles, validates them and uploads them to the website's private Cloudflare D1 inventory. The Mac and desktop app are needed for replenishment.
 
 The iPhone reminds the player at 08:00 Toronto time and checks the active date when the game returns to the foreground.
 
-The Codex task validates and reuses the first published puzzle for each date. The GitHub Actions workflow is disabled.
+At 08:00 Toronto time, the website starts serving the puzzle for that date. It freezes the puzzle at opening and serves earlier dates from either the inventory or the public GitHub archive. The GitHub Actions workflow is disabled.
 
 `generate_daily.py` samples a set of twelve route families using a date seed and recent published history. Each family has its own sequence of turns, goals and mechanisms. The generator samples positions, sizes and starting angles within that structure. A geometry solver verifies an unsolved starting layout and a Perfect-capable route at seven board sizes, including short landscape.
 
-Each publication adds one immutable `challenges/YYYY-MM-DD.json` file. The app resets the challenge at 08:00 Toronto time and requests that date’s file from `https://rayskip.com/daily/challenges/YYYY-MM-DD.json`. This endpoint serves the GitHub file. Keeping past files lets the previous challenge remain accessible between 07:00 publication and the 08:00 reset. No future puzzles are generated in advance, and the app has no offline daily generator or persistent daily-content cache.
+The App requests its active date from `https://rayskip.com/daily/challenges/YYYY-MM-DD.json`. An already downloaded and validated puzzle is cached on the device for that day. The website rejects requests for future dates until their opening time. Public `challenges/YYYY-MM-DD.json` files are immutable archives of opened puzzles.
 
 ## Run and recover
 
 ```sh
-python3 -m unittest -v test_daily
-python3 generate_daily.py
-python3 generate_daily.py --date 2026-10-17 --output /tmp/rayskip-daily
+python3 -m unittest -v test_daily test_daily_inventory
+python3 daily_inventory.py status
+python3 daily_inventory.py history YYYY-MM-DD
+python3 daily_inventory.py put /private/path/YYYY-MM-DD.json
 ```
 
-To recover a missed publication, use the existing Codex task or validate the challenge locally and commit only the current dated file. A failed solver check stops publication and retains the previous files. The Codex task uses the existing local GitHub sign-in. The disabled [GitHub Actions workflow](https://github.com/jack28257/RaySkipDaily/actions/workflows/daily.yml) remains in the repository.
+Use the status command to find the earliest gap. The uploader rechecks the solver, aiming margin and recent routes on both sides of that date. It uses the existing authenticated Wrangler connection in the sibling `RaySkipSupport` checkout. A replacement requires `--replace` and must occur before release. A missing current day can be repaired with `put --allow-today` after checking its archive.
 
-The one-hour gap before the phone reset allows time for publishing. iOS presents the local notification at 08:00 if notifications are allowed. The app fetches when it opens or returns to the foreground.
+Use `python3 daily_inventory.py archive YYYY-MM-DD` after 08:00 on that date, then commit and push the verified dated archive file on its own. Future puzzle JSON belongs in the private inventory. The [GitHub Actions workflow](https://github.com/jack28257/RaySkipDaily/actions/workflows/daily.yml) remains disabled.
 
 On 2026-10-18, no natural GitHub scheduled run appeared and the dated file was missing after 08:00. The generator itself passed verification. Today's puzzle was generated locally, validated at all four board sizes and pushed to GitHub in `d67f9e0`; the public files and the paired iPhone's GitHub load were verified. The Codex task was then enabled at the user's request. Its first natural 07:00 execution succeeded on 2026-10-19 at 07:01 Toronto (`6c14fcb`).
 
