@@ -2,6 +2,9 @@ import datetime as dt
 import json
 from pathlib import Path
 import sqlite3
+import subprocess
+import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -17,13 +20,14 @@ class DailyInventoryTests(unittest.TestCase):
             self.assertEqual(instant.hour, utc_hour)
         self.assertEqual(inventory.stock_dates(dt.date(2026, 12, 28))[-1], dt.date(2027, 1, 4))
 
-    def test_nearby_future_slot_is_included_in_uniqueness_check(self):
+    def test_nearby_slots_on_both_sides_are_included_in_uniqueness_check(self):
         day = dt.date(2026, 11, 25)
         raw = (inventory.ARCHIVE / f"{day}.json").read_bytes()
         duplicate = json.loads(raw)
         inventory.check_candidate(raw, day, {})
-        with self.assertRaisesRegex(ValueError, "repeats a puzzle"):
-            inventory.check_candidate(raw, day, {day + dt.timedelta(days=2): duplicate})
+        for offset in (-2, 2):
+            with self.subTest(offset=offset), self.assertRaisesRegex(ValueError, "repeats a puzzle"):
+                inventory.check_candidate(raw, day, {day + dt.timedelta(days=offset): duplicate})
 
     def test_explicit_replacement_cannot_overwrite_current_day(self):
         day = dt.date(2026, 11, 25)
@@ -36,6 +40,34 @@ class DailyInventoryTests(unittest.TestCase):
         raw = "八点\n'RaySkip'".encode("utf-8")
         with sqlite3.connect(":memory:") as db:
             self.assertEqual(db.execute("SELECT " + inventory.sql_text(raw)).fetchone()[0], raw.decode("utf-8"))
+
+    def test_optimized_interpreter_cannot_use_inventory(self):
+        result = subprocess.run([sys.executable, "-O", str(inventory.ROOT / "daily_inventory.py"), "--help"],
+                                capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("requires Python assertions", result.stderr)
+
+    def test_archive_preserves_original_bytes_and_refuses_replacement(self):
+        day = dt.date(2026, 10, 19)
+        raw = (inventory.ARCHIVE / f"{day}.json").read_bytes()
+        row = {"release_at": 0, "payload": raw.decode("utf-8")}
+        with (tempfile.TemporaryDirectory() as folder,
+              patch.object(inventory, "ARCHIVE", Path(folder)),
+              patch.object(inventory, "release_at", return_value=0),
+              patch.object(inventory, "stored_between", return_value={day: row})):
+            path = inventory.ARCHIVE / f"{day}.json"
+            inventory.archive(day)
+            self.assertEqual(path.read_bytes(), raw)
+            timestamp = path.stat().st_mtime_ns
+
+            inventory.archive(day)
+            self.assertEqual(path.stat().st_mtime_ns, timestamp)
+
+            row["payload"] += "\n"
+            with self.assertRaisesRegex(ValueError, "existing public archive differs"):
+                inventory.archive(day)
+            self.assertEqual(path.read_bytes(), raw)
+            self.assertEqual(path.stat().st_mtime_ns, timestamp)
 
 
 if __name__ == "__main__":

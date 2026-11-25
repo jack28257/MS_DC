@@ -1,4 +1,4 @@
-"""Release gates for newly generated puzzles. Historical puzzles keep their original rules."""
+"""Release checks for daily puzzles and tools for comparing published routes."""
 
 from contextlib import contextmanager
 from itertools import combinations
@@ -8,6 +8,7 @@ import mirror_daily_validator as solver
 
 
 LOOKBACK_DAYS = 7
+BOARD_SIZES = ((390, 620), (402, 520), (440, 700), (700, 600), (600, 210), (780, 230), (852, 270))
 PORTRAIT_MARGIN_DEGREES = 0.50
 LANDSCAPE_MARGIN_DEGREES = 0.25
 SHORTCUT_STEP_DEGREES = 5
@@ -23,6 +24,12 @@ def board_size(size):
         yield
     finally:
         solver.STAGE_RECT = original
+
+
+def validate_challenge(payload):
+    for size in BOARD_SIZES:
+        with board_size(size):
+            solver.validate_level(payload)
 
 
 def route_signature(payload):

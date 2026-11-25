@@ -12,12 +12,12 @@ from urllib.request import urlopen
 from zoneinfo import ZoneInfo
 
 import daily_quality
-from generate_daily import BOARD_SIZES, ROOT, validate_challenge
 
 
 TORONTO = ZoneInfo("America/Toronto")
 STOCK_DAYS = 7
 MAX_PAYLOAD_BYTES = 65_536
+ROOT = Path(__file__).resolve().parent
 SUPPORT = ROOT.parent / "RaySkipSupport"
 ARCHIVE = ROOT / "challenges"
 UPSTREAM = "https://raw.githubusercontent.com/jack28257/RaySkipDaily/main/challenges/"
@@ -65,7 +65,7 @@ def validate_payload(raw, day):
         day.isoformat(), f"daily-{day}", int(day.strftime("%Y%m%d"))
     ):
         raise ValueError("The payload date and IDs must match the inventory date.")
-    validate_challenge(payload)
+    daily_quality.validate_challenge(payload)
     return payload
 
 
@@ -74,7 +74,7 @@ def check_candidate(raw, day, neighbors):
     level = payload["challenge"]["level"]
     if level.get("demo", {}).get("targetColors") and any(target["radius"] != .028 for target in level["targets"]):
         raise ValueError("All targets in a colored puzzle must have radius 0.028.")
-    profile = daily_quality.clarity_profile(payload, BOARD_SIZES)
+    profile = daily_quality.clarity_profile(payload, daily_quality.BOARD_SIZES)
     if profile is None or (payload["challenge"]["difficulty"] == "Advanced" and profile["minIntendedChanges"] < 4):
         raise ValueError("The puzzle did not pass the aiming and shortcut checks for its difficulty.")
     if payload["validation"].get("quality") != profile:
