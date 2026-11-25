@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 2,
+  "challenge": {
+    "id": "daily-2026-11-25",
+    "date": "2026-11-25",
+    "title": "Daily Challenge",
+    "localizedTitle": {
+      "en": "Daily Challenge",
+      "fr": "Défi du jour",
+      "zh": "每日挑战"
+    },
+    "difficulty": "Advanced",
+    "level": {
+      "id": 20261125,
+      "name": "Daily Challenge",
+      "shotLimit": 1,
+      "parShots": 1,
+      "emitter": {
+        "position": {
+          "x": 0.2705,
+          "y": 0.4028
+        },
+        "directionDegrees": 0
+      },
+      "mirrors": [
+        {
+          "id": 1,
+          "position": {
+            "x": 0.6512,
+            "y": 0.4028
+          },
+          "length": 0.125,
+          "angleDegrees": 77.824,
+          "isRotatable": true
+        },
+        {
+          "id": 2,
+          "position": {
+            "x": 0.6998,
+            "y": 0.6674
+          },
+          "length": 0.125,
+          "angleDegrees": 83.14,
+          "isRotatable": true
+        },
+        {
+          "id": 3,
+          "position": {
+            "x": 0.4298,
+            "y": 0.6944
+          },
+          "length": 0.125,
+          "angleDegrees": 78.316,
+          "isRotatable": true
+        },
+        {
+          "id": 4,
+          "position": {
+            "x": 0.4298,
+            "y": 0.2705
+          },
+          "length": 0.125,
+          "angleDegrees": -77.948,
+          "isRotatable": true
+        }
+      ],
+      "targets": [
+        {
+          "id": 1,
+          "position": {
+            "x": 0.5324,
+            "y": 0.4028
+          },
+          "radius": 0.028
+        },
+        {
+          "id": 2,
+          "position": {
+            "x": 0.688622,
+            "y": 0.606542
+          },
+          "radius": 0.028
+        },
+        {
+          "id": 3,
+          "position": {
+            "x": 0.5702,
+            "y": 0.68036
+          },
+          "radius": 0.028
+        },
+        {
+          "id": 4,
+          "position": {
+            "x": 0.4298,
+            "y": 0.35744
+          },
+          "radius": 0.028
+        },
+        {
+          "id": 5,
+          "position": {
+            "x": 0.5378,
+            "y": 0.2894
+          },
+          "radius": 0.028
+        }
+      ],
+      "demo": {
+        "kind": "filter",
+        "splitters": [],
+        "filters": [
+          {
+            "id": 1,
+            "position": {
+              "x": 0.4298,
+              "y": 0.4028
+            },
+            "radius": 0.047,
+            "color": "cyan"
+          },
+          {
+            "id": 2,
+            "position": {
+              "x": 0.674042,
+              "y": 0.527162
+            },
+            "radius": 0.04,
+            "color": "amber"
+          }
+        ],
+        "targetColors": {
+          "1": "cyan",
+          "2": "amber",
+          "3": "amber",
+          "4": "cyan",
+          "5": "cyan"
+        },
+        "hazards": [],
+        "solutionAngles": {},
+        "solutionPaths": [
+          [
+            {
+              "x": 0.2705,
+              "y": 0.4028
+            },
+            {
+              "x": 0.6512,
+              "y": 0.4028
+            },
+            {
+              "x": 0.6998,
+              "y": 0.6674
+            },
+            {
+              "x": 0.4298,
+              "y": 0.6944
+            },
+            {
+              "x": 0.4298,
+              "y": 0.2705
+            },
+            {
+              "x": 0.5378,
+              "y": 0.2894
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "validation": {
+    "routeFamily": "crossing-color-return",
+    "quality": {
+      "minIntendedChanges": 4,
+      "portraitMarginDegrees": 0.5,
+      "landscapeMarginDegrees": 0.25,
+      "shortcutSweepStepDegrees": 5
+    }
+  }
+}
