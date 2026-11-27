@@ -8,7 +8,10 @@ import mirror_daily_validator as solver
 
 
 LOOKBACK_DAYS = 7
-BOARD_SIZES = ((390, 620), (402, 520), (440, 700), (700, 600), (600, 210), (780, 230), (852, 270))
+# Scene sizes a daily must work at. The last six were added on 2026-11-27: tall phones (height about 1.9 to 2.0
+# times the width), the smallest phone and an iPad. The game engine check uses the same thirteen sizes.
+BOARD_SIZES = ((390, 620), (402, 520), (440, 700), (700, 600), (600, 210), (780, 230), (852, 270),
+               (393, 748), (402, 788), (430, 850), (440, 868), (320, 460), (768, 900))
 PORTRAIT_MARGIN_DEGREES = 0.50
 LANDSCAPE_MARGIN_DEGREES = 0.25
 SHORTCUT_STEP_DEGREES = 5
