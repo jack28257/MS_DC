@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "challenge": {
+    "id": "daily-2026-11-26",
+    "date": "2026-11-26",
+    "title": "Daily Challenge",
+    "localizedTitle": {
+      "en": "Daily Challenge",
+      "fr": "Défi du jour",
+      "zh": "每日挑战"
+    },
+    "difficulty": "Standard",
+    "level": {
+      "id": 20261126,
+      "name": "Daily Challenge",
+      "shotLimit": 1,
+      "parShots": 1,
+      "emitter": {
+        "position": {
+          "x": 0.11,
+          "y": 0.36
+        },
+        "directionDegrees": 0
+      },
+      "mirrors": [
+        {
+          "id": 1,
+          "position": {
+            "x": 0.34,
+            "y": 0.36
+          },
+          "length": 0.148,
+          "angleDegrees": 71.838,
+          "isRotatable": true
+        },
+        {
+          "id": 2,
+          "position": {
+            "x": 0.55,
+            "y": 0.67
+          },
+          "length": 0.148,
+          "angleDegrees": -30.257,
+          "isRotatable": true
+        },
+        {
+          "id": 3,
+          "position": {
+            "x": 0.77,
+            "y": 0.51
+          },
+          "length": 0.148,
+          "angleDegrees": -34.376,
+          "isRotatable": true
+        }
+      ],
+      "targets": [
+        {
+          "id": 1,
+          "position": {
+            "x": 0.225,
+            "y": 0.36
+          },
+          "radius": 0.033
+        },
+        {
+          "id": 2,
+          "position": {
+            "x": 0.4492,
+            "y": 0.5212
+          },
+          "radius": 0.033
+        },
+        {
+          "id": 3,
+          "position": {
+            "x": 0.6622,
+            "y": 0.5884
+          },
+          "radius": 0.033
+        },
+        {
+          "id": 4,
+          "position": {
+            "x": 0.62,
+            "y": 0.16
+          },
+          "radius": 0.033
+        }
+      ],
+      "dailyBoard": {
+        "movesMirrors": true,
+        "walls": []
+      }
+    }
+  },
+  "validation": {
+    "routeFamily": "stock-cross-corners",
+    "quality": {
+      "minIntendedChanges": 3,
+      "portraitMarginDegrees": 0.5,
+      "landscapeMarginDegrees": 0.25,
+      "shortcutSweepStepDegrees": 5
+    }
+  }
+}
