@@ -41,6 +41,55 @@ class DailyInventoryTests(unittest.TestCase):
                 engine.assert_called_once_with([path])
                 database.assert_not_called()
 
+    def test_put_refuses_a_must_fix_shortcut_found_in_the_game_engine(self):
+        # Phase 9: two unopened dailies had three-of-four-mirror Perfect routes (must-fix under Jack's shortcut
+        # policy) that only a search seeded with the Python tracer's routes found. put now runs that search.
+        today = dt.date(2026, 11, 28)
+        day = today + dt.timedelta(days=2)
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / f"{day}.json"
+            path.write_text("{}")
+            with mock.patch.object(inventory, "toronto_today", return_value=today), \
+                 mock.patch.object(inventory, "nearby_puzzles", return_value=({}, {})), \
+                 mock.patch.object(inventory, "check_candidate"), \
+                 mock.patch.object(inventory, "engine_check"), \
+                 mock.patch.object(inventory, "SHORTCUT_CHECK", Path(__file__)), \
+                 mock.patch.object(inventory.subprocess, "run") as run, \
+                 mock.patch.object(inventory, "d1") as database:
+                run.return_value = subprocess.CompletedProcess([], 1, stdout=(
+                    "daily-2026-11-30: intended 4 changes, start unsolved, reference 100, findings 1\n"
+                    "    390x620 mustFix fewerMirrors: 3 mirrors (intended 4), best 100, ease x22.123\n"
+                    "MUST-FIX shortcuts (Jack's policy): daily-2026-11-30\n"), stderr="")
+                with self.assertRaisesRegex(ValueError, "shortcut"):
+                    inventory.put(path)
+                command = run.call_args.args[0]
+                self.assertIn("--python-hints", command)
+                self.assertIn("--fail-on-must-fix", command)
+                self.assertIn(str(path), command)
+                database.assert_not_called()
+
+    def test_verify_stock_fails_dates_with_a_must_fix_shortcut(self):
+        today = dt.date(2026, 11, 28)
+        archived = (inventory.ARCHIVE / "2026-11-27.json").read_text()
+        rows = {}
+        for offset in (2, 4):
+            day = today + dt.timedelta(days=offset)
+            payload = json.loads(archived)
+            payload["challenge"].update(date=str(day), id=f"daily-{day}")
+            payload["challenge"]["level"]["id"] = int(day.strftime("%Y%m%d"))
+            rows[day] = {"payload": json.dumps(payload), "release_at": inventory.release_at(day)}
+        with mock.patch.object(inventory, "toronto_today", return_value=today), \
+             mock.patch.object(inventory, "stored_between", return_value=rows), \
+             mock.patch.object(inventory, "engine_check"), \
+             mock.patch.object(inventory, "shortcut_check", return_value={today + dt.timedelta(days=4)}) as search, \
+             mock.patch("builtins.print") as printed:
+            with self.assertRaises(SystemExit):
+                inventory.verify_stock()
+        self.assertEqual(len(search.call_args.args[0]), 2)
+        lines = [call.args[0] for call in printed.call_args_list if call.args]
+        self.assertIn("FAIL 2026-12-02 (must-fix shortcut in the game engine)", lines)
+        self.assertNotIn("FAIL 2026-11-30 (must-fix shortcut in the game engine)", lines)
+
     def test_nearby_slots_on_both_sides_are_included_in_uniqueness_check(self):
         # 2026-11-26 passes at all thirteen sizes; 11-24 and 11-25 (already opened) miss the margin on tall phones.
         day = dt.date(2026, 11, 26)

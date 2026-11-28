@@ -21,6 +21,8 @@ ROOT = Path(__file__).resolve().parent
 SUPPORT = ROOT.parent / "RaySkipSupport"
 # The app's own decoder, scene, shot planner and scorer run on the test simulator (RaySkip/tests).
 ENGINE_CHECK = ROOT.parent / "RaySkip" / "tests" / "check_daily_engine.py"
+# Alternative routes in the same engine, seeded with every route the Python tracer finds (Jack's shortcut policy).
+SHORTCUT_CHECK = ROOT.parent / "RaySkip" / "tests" / "check_shortcuts.py"
 ARCHIVE = ROOT / "challenges"
 UPSTREAM = "https://raw.githubusercontent.com/jack28257/RaySkipDaily/main/challenges/"
 
@@ -105,6 +107,27 @@ def engine_check(paths):
                          else "The game engine check could not run: " + (run.stderr.strip().splitlines() or ["no output"])[-1])
 
 
+def shortcut_check(paths):
+    """Search candidates (files named YYYY-MM-DD.json) for must-fix shortcuts: a route through fewer mirrors, or skipping
+    a mechanism, at least as easy to find as the authored one (Jack's policy, 2026-11-27). Prints verdicts only, never
+    angles, and returns the dates that have one."""
+    if not SHORTCUT_CHECK.exists():
+        raise RuntimeError(f"The shortcut search is missing: {SHORTCUT_CHECK}")
+    with TemporaryDirectory(prefix="rayskip-shortcuts-") as folder:
+        run = subprocess.run(["python3", str(SHORTCUT_CHECK), "--files", *map(str, paths), "--python-hints",
+                              "--fail-on-must-fix", "--report", str(Path(folder) / "search.json")],
+                             cwd=SHORTCUT_CHECK.parent, capture_output=True, text=True, timeout=3600)
+    lines = [line for line in run.stdout.splitlines()
+             if line.startswith(("daily-", "    ", "MUST-FIX", "No must-fix"))]
+    print("\n".join(lines))
+    flagged = next((line for line in lines if line.startswith("MUST-FIX")), None)
+    if run.returncode == 1 and flagged:
+        return {dt.date.fromisoformat(tag.strip()[-10:]) for tag in flagged.split(":", 1)[1].split(",")}
+    if run.returncode or not any(line.startswith("No must-fix") for line in lines):
+        raise ValueError("The shortcut search could not run: " + (run.stderr.strip().splitlines() or ["no output"])[-1])
+    return set()
+
+
 def nearby_puzzles(day):
     span = dt.timedelta(days=daily_quality.LOOKBACK_DAYS)
     rows = stored_between(day - span, day + span)
@@ -147,6 +170,8 @@ def put(path, *, replace=False, allow_today=False):
         raise ValueError(f"{day} is already prepared. An explicit --replace is required before release.")
     check_candidate(raw, day, neighbors)
     engine_check([path])
+    if shortcut_check([path]):
+        raise ValueError("The game engine found a must-fix shortcut (see the verdicts above).")
     data = sql_text(raw)
     conflict = "DO NOTHING"
     if current:
@@ -214,6 +239,9 @@ def verify_stock():
                 engine_check(paths)
             except ValueError:
                 failed.append("engine")
+            for day in sorted(shortcut_check(paths)):
+                print(f"FAIL {day} (must-fix shortcut in the game engine)")
+                failed.append(day)
     if failed:
         raise SystemExit("Some prepared puzzles fail today's rules. Redesign them and store them with put --replace.")
     print("All prepared puzzles pass today's rules and the game engine.")
