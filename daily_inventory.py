@@ -88,7 +88,8 @@ def check_candidate(raw, day, neighbors):
     for other_day, other in neighbors.items():
         if other_day == day or abs((other_day - day).days) > daily_quality.LOOKBACK_DAYS:
             continue
-        if family == daily_quality.family_for(other) or signature == daily_quality.route_signature(other):
+        if (family == daily_quality.family_for(other) or signature == daily_quality.route_signature(other)
+                or daily_quality.is_mirrored_copy(payload, other)):
             raise ValueError(f"The route repeats a puzzle planned or played on {other_day}.")
 
 

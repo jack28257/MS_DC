@@ -51,6 +51,28 @@ class DailyInventoryTests(unittest.TestCase):
             with self.subTest(offset=offset), self.assertRaisesRegex(ValueError, "repeats a puzzle"):
                 inventory.check_candidate(raw, day, {day + dt.timedelta(days=offset): duplicate})
 
+    def test_mirrored_or_rotated_copy_of_a_nearby_puzzle_is_a_repeat(self):
+        # Phase 9: route signatures ignore flips but not swapped axes, so a copy turned a quarter turn or mirrored
+        # across the diagonal (renamed family) used to pass as new. A near-identical layout is a repeat either way.
+        day = dt.date(2026, 11, 26)
+        raw = (inventory.ARCHIVE / f"{day}.json").read_bytes()
+        for name, turn in (("transposed", lambda x, y: (y, x)), ("quarter turn", lambda x, y: (1 - y, x)),
+                           ("flipped", lambda x, y: (1 - x, y))):
+            twin = json.loads(raw)
+            twin["validation"]["routeFamily"] = "renamed-" + name
+            level = twin["challenge"]["level"]
+            demo = level.get("demo") or {}
+            objects = [level["emitter"], *level["mirrors"], *level["targets"],
+                       *demo.get("splitters", []), *demo.get("filters", []), *demo.get("hazards", [])]
+            for point in [obj["position"] for obj in objects] + [pt for path in demo.get("solutionPaths", []) for pt in path]:
+                point["x"], point["y"] = turn(point["x"], point["y"])
+            with self.subTest(copy=name), self.assertRaisesRegex(ValueError, "repeats a puzzle"):
+                inventory.check_candidate(raw, day, {day + dt.timedelta(days=3): twin})
+        # Other opened puzzles nearby are not copies of it.
+        neighbours = {other: json.loads((inventory.ARCHIVE / f"{other}.json").read_bytes())
+                      for other in (dt.date(2026, 11, 23), dt.date(2026, 11, 24), dt.date(2026, 11, 25), dt.date(2026, 11, 27))}
+        inventory.check_candidate(raw, day, neighbours)
+
     def test_explicit_replacement_cannot_overwrite_current_day(self):
         day = dt.date(2026, 11, 25)
         with patch.object(inventory, "toronto_today", return_value=day), patch.object(inventory, "d1") as db:

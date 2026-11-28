@@ -73,6 +73,45 @@ def route_signature(payload):
                for sx in (-1, 1) for sy in (-1, 1))
 
 
+COPY_TOLERANCE = .05
+# The board's eight symmetries in normalized coordinates: flips of either axis, with or without swapping the axes.
+BOARD_SYMMETRIES = tuple(
+    (lambda swap, fx, fy: lambda x, y: ((1 - y if fx else y, 1 - x if fy else x) if swap
+                                        else (1 - x if fx else x, 1 - y if fy else y)))(swap, fx, fy)
+    for swap in (False, True) for fx in (False, True) for fy in (False, True))
+
+
+def layout_groups(payload):
+    """Object positions by kind (emitter, mirrors, targets, optics, wall centres) in normalized coordinates."""
+    level = payload['challenge']['level']
+    demo = level.get('demo') or {}
+    walls = (level.get('dailyBoard') or {}).get('walls', [])
+    position = lambda obj: (obj['position']['x'], obj['position']['y'])
+    return {
+        'emitter': [position(level['emitter'])],
+        'mirrors': [position(obj) for obj in level['mirrors']],
+        'targets': [position(obj) for obj in level['targets']],
+        'splitters': [position(obj) for obj in demo.get('splitters', [])],
+        'filters': [position(obj) for obj in demo.get('filters', [])],
+        'hazards': [position(obj) for obj in demo.get('hazards', [])],
+        'walls': [(wall['x'] + wall['width'] / 2, wall['y'] + wall['height'] / 2) for wall in walls if 'width' in wall],
+    }
+
+
+def is_mirrored_copy(first, second, tolerance=COPY_TOLERANCE):
+    """True when some flip, quarter turn or transposition of `first` puts every object within `tolerance` of an
+    object of the same kind in `second`: a re-skin of the same puzzle, which `route_signature` misses when the
+    axes are swapped."""
+    a, b = layout_groups(first), layout_groups(second)
+    if any(len(a[kind]) != len(b[kind]) for kind in a):
+        return False
+    for symmetry in BOARD_SYMMETRIES:
+        if all(min(((x2 - u) ** 2 + (y2 - v) ** 2) ** .5 for x2, y2 in b[kind]) <= tolerance
+               for kind in a for u, v in (symmetry(x, y) for x, y in a[kind])):
+            return True
+    return False
+
+
 def family_for(payload):
     default = 'classic-zigzag' if payload['schemaVersion'] == 1 else None
     return payload.get('validation', {}).get('routeFamily', default)
